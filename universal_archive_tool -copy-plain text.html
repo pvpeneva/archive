@@ -1,0 +1,1631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Archive Footage Database - Live</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px 40px 40px 80px;
+            text-align: center;
+            position: relative;
+        }
+        
+        .hamburger-menu {
+            position: absolute;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 40px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            z-index: 1001;
+        }
+        
+        .hamburger-menu:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        .hamburger-icon {
+            font-size: 1.8em;
+            color: white;
+        }
+        
+        .sidebar {
+            position: fixed;
+            left: -350px;
+            top: 0;
+            width: 350px;
+            height: 100vh;
+            background: white;
+            box-shadow: 2px 0 20px rgba(0,0,0,0.2);
+            transition: left 0.3s;
+            z-index: 1000;
+            overflow-y: auto;
+        }
+        
+        .sidebar.open {
+            left: 0;
+        }
+        
+        .sidebar-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .sidebar-header h2 {
+            font-size: 1.5em;
+        }
+        
+        .close-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.5em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+        
+        .close-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        .sidebar-content {
+            padding: 20px;
+        }
+        
+        .add-sheet-btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            margin-bottom: 20px;
+            transition: all 0.3s;
+        }
+        
+        .add-sheet-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(40, 167, 69, 0.4);
+        }
+        
+        .sheet-list {
+            list-style: none;
+        }
+        
+        .sheet-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border-left: 4px solid transparent;
+            position: relative;
+        }
+        
+        .sheet-item:hover {
+            background: #e9ecef;
+            border-left-color: #667eea;
+        }
+        
+        .sheet-item.active {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+            border-left-color: #667eea;
+        }
+        
+        .sheet-item-name {
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 5px;
+            font-size: 1.1em;
+        }
+        
+        .sheet-item-url {
+            font-size: 0.8em;
+            color: #6c757d;
+            word-break: break-all;
+        }
+        
+        .sheet-item-actions {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            gap: 5px;
+        }
+        
+        .action-btn {
+            background: rgba(102, 126, 234, 0.1);
+            border: none;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.3s;
+        }
+        
+        .action-btn:hover {
+            background: rgba(102, 126, 234, 0.2);
+        }
+        
+        .action-btn.delete {
+            background: rgba(239, 68, 68, 0.1);
+        }
+        
+        .action-btn.delete:hover {
+            background: rgba(239, 68, 68, 0.2);
+        }
+        
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+        
+        .modal.show {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+        
+        .modal-header {
+            font-size: 1.5em;
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+        
+        .modal-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 1em;
+            margin-bottom: 15px;
+        }
+        
+        .modal-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .modal-buttons button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .modal-btn-save {
+            background: #28a745;
+            color: white;
+        }
+        
+        .modal-btn-cancel {
+            background: #e9ecef;
+            color: #495057;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #6c757d;
+        }
+        
+        .empty-state-icon {
+            font-size: 3em;
+            margin-bottom: 15px;
+        }
+        
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.3);
+            display: none;
+            z-index: 999;
+        }
+        
+        .overlay.show {
+            display: block;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.95;
+        }
+        
+        .live-indicator {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .live-dot {
+            width: 10px;
+            height: 10px;
+            background: #4ade80;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        
+        .live-dot.error {
+            background: #ef4444;
+            animation: none;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .setup-instructions {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            margin: 30px;
+            border-radius: 12px;
+        }
+        
+        .setup-instructions h3 {
+            font-size: 1.5em;
+            margin-bottom: 20px;
+        }
+        
+        .setup-step {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+        
+        .setup-step h4 {
+            margin-bottom: 10px;
+            font-size: 1.2em;
+        }
+        
+        .code-block {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            overflow-x: auto;
+            margin: 10px 0;
+            white-space: pre;
+        }
+        
+        .sheet-config {
+            padding: 30px;
+            background: #f8f9fa;
+            border-bottom: 2px solid #e9ecef;
+        }
+        
+        .sheet-input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .sheet-input-group input {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 1em;
+        }
+        
+        .sheet-input-group button {
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .sheet-input-group button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .help-text {
+            font-size: 0.9em;
+            color: #6c757d;
+            margin-top: 10px;
+            line-height: 1.6;
+        }
+        
+        .stats-bar {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            padding: 30px;
+            background: #f8f9fa;
+            border-bottom: 2px solid #e9ecef;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            text-align: center;
+        }
+        
+        .stat-card.video {
+            border-left: 4px solid #667eea;
+        }
+        
+        .stat-card.stills {
+            border-left: 4px solid #ffc107;
+        }
+        
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+        
+        .stat-card.stills .stat-value {
+            color: #ffc107;
+        }
+        
+        .stat-label {
+            color: #6c757d;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .controls {
+            padding: 30px;
+            background: #f8f9fa;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .control-group label {
+            font-weight: 600;
+            color: #495057;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .control-group input,
+        .control-group select {
+            padding: 12px;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: all 0.3s;
+        }
+        
+        .control-group input:focus,
+        .control-group select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .button-group {
+            grid-column: 1 / -1;
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            flex: 1;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-secondary {
+            background: #e9ecef;
+            color: #495057;
+        }
+        
+        .btn-secondary:hover {
+            background: #dee2e6;
+        }
+        
+        .section-divider {
+            background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);
+            color: white;
+            padding: 25px 30px;
+            margin: 30px 0;
+            text-align: center;
+            font-size: 1.5em;
+            font-weight: 600;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(255, 193, 7, 0.3);
+        }
+        
+        .section-divider.video {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+        
+        .content {
+            padding: 30px;
+            max-height: 800px;
+            overflow-y: auto;
+        }
+        
+        .archive-section {
+            margin-bottom: 50px;
+            page-break-inside: avoid;
+            overflow-x: auto;
+        }
+        
+        .archive-title {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 25px;
+            border-radius: 8px 8px 0 0;
+            font-size: 1.4em;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .archive-title.stills {
+            background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);
+        }
+        
+        .archive-meta {
+            font-size: 0.8em;
+            opacity: 0.95;
+        }
+        
+        .archive-table {
+            width: 100%;
+            min-width: 1200px;
+            border-collapse: collapse;
+            background: white;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            border-radius: 0 0 8px 8px;
+            overflow: hidden;
+        }
+        
+        .archive-table thead {
+            background: #f8f9fa;
+        }
+        
+        .archive-table th {
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            color: #495057;
+            border-bottom: 2px solid #dee2e6;
+            text-transform: uppercase;
+            font-size: 0.85em;
+            letter-spacing: 0.5px;
+        }
+        
+        .archive-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .archive-table tbody tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .archive-table tbody tr:last-child {
+            border-bottom: none;
+        }
+        
+        .duration-cell {
+            font-family: 'Courier New', monospace;
+            font-weight: 600;
+            color: #667eea;
+            font-size: 1.05em;
+        }
+        
+        .total-row {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+            color: white !important;
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+        
+        .total-row.stills {
+            background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%) !important;
+        }
+        
+        .total-row td {
+            border-bottom: none !important;
+            padding: 18px 15px !important;
+        }
+        
+        .total-row .duration-cell {
+            color: white !important;
+            font-size: 1.2em;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 60px;
+            color: #6c757d;
+            font-size: 1.2em;
+        }
+        
+        .toggle-setup {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            padding: 15px;
+            margin: 20px 30px;
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: center;
+            font-weight: 600;
+            color: #856404;
+        }
+        
+        .toggle-setup:hover {
+            background: #ffe69c;
+        }
+        
+        @media print {
+            body {
+                background: white;
+            }
+            
+            .controls, .stats-bar, .header, .sheet-config, .setup-instructions, .toggle-setup, .hamburger-menu, .sidebar {
+                display: none;
+            }
+            
+            .container {
+                box-shadow: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="overlay" id="overlay" onclick="closeSidebar()"></div>
+    
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <h2>📚 My Sheets</h2>
+            <button class="close-btn" onclick="closeSidebar()">×</button>
+        </div>
+        <div class="sidebar-content">
+            <button class="add-sheet-btn" onclick="showAddSheetModal()">+ Add New Sheet</button>
+            <ul class="sheet-list" id="sheetList">
+                <!-- Sheets will be populated here -->
+            </ul>
+            <div class="empty-state" id="emptyState">
+                <div class="empty-state-icon">📋</div>
+                <p>No sheets saved yet</p>
+                <p style="font-size: 0.9em; margin-top: 10px;">Click "Add New Sheet" to get started</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Add/Edit Sheet Modal -->
+    <div class="modal" id="sheetModal">
+        <div class="modal-content">
+            <div class="modal-header" id="modalTitle">Add New Sheet</div>
+            <input type="text" class="modal-input" id="sheetName" placeholder="Sheet Name (e.g., DUCKWITZ EDL)">
+            <input type="text" class="modal-input" id="sheetUrl" placeholder="Apps Script Web App URL">
+            <div class="modal-buttons">
+                <button class="modal-btn-save" onclick="saveSheet()">Save</button>
+                <button class="modal-btn-cancel" onclick="closeModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="container">
+        <div class="header">
+            <div class="hamburger-menu" onclick="toggleSidebar()">
+                <div class="hamburger-icon">☰</div>
+            </div>
+            <div class="live-indicator">
+                <div class="live-dot" id="liveDot"></div>
+                <span id="liveStatus">Ready</span>
+            </div>
+            <h1>🎬 Live Archive Report</h1>
+            <p>Real-time Footage Database • Film & Video Archives</p>
+        </div>
+        
+        <div class="toggle-setup" onclick="toggleSetup()">
+            📖 Click here for Setup Instructions (One-time, 2 minutes)
+        </div>
+        
+        <div class="setup-instructions" id="setupInstructions" style="display: none;">
+            <h3>🚀 One-Time Setup (Takes 2 minutes)</h3>
+            <p style="margin-bottom: 20px;">Create a simple Google Apps Script to connect your sheet. This bypasses all connection issues!</p>
+            
+            <div class="setup-step">
+                <h4>Step 1: Open Apps Script</h4>
+                <p>In your Google Sheet, go to: <strong>Extensions → Apps Script</strong></p>
+            </div>
+            
+            <div class="setup-step">
+                <h4>Step 2: Paste This Code</h4>
+                <p>Delete any existing code and paste this:</p>
+                <div class="code-block">function doGet(e) {
+  try {
+    var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('DUCKWITZ EDL');
+    
+    if (!sheet) {
+      return ContentService
+        .createTextOutput(JSON.stringify({error: 'Sheet not found'}))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    var data = sheet.getDataRange().getValues();
+    var headers = data[0];
+    var rows = [];
+    
+    for (var i = 1; i < data.length; i++) {
+      var row = {};
+      for (var j = 0; j < headers.length; j++) {
+        row[headers[j]] = data[i][j] !== null && data[i][j] !== undefined 
+          ? data[i][j].toString() 
+          : '';
+      }
+      rows.push(row);
+    }
+    
+    return ContentService
+      .createTextOutput(JSON.stringify(rows))
+      .setMimeType(ContentService.MimeType.JSON);
+      
+  } catch (error) {
+    return ContentService
+      .createTextOutput(JSON.stringify({error: error.toString()}))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}</div>
+                <p style="margin-top: 10px;"><strong>Important:</strong> Replace <code>'DUCKWITZ EDL'</code> with your actual sheet tab name if different!</p>
+            </div>
+            
+            <div class="setup-step">
+                <h4>Step 3: Deploy as Web App</h4>
+                <ol style="line-height: 2; margin-top: 10px;">
+                    <li>Click <strong>💾 Save</strong> first</li>
+                    <li>Click <strong>"Deploy"</strong> → <strong>"New deployment"</strong></li>
+                    <li>Click gear icon ⚙️ → Select <strong>"Web app"</strong></li>
+                    <li><strong>Execute as:</strong> Me</li>
+                    <li><strong>Who has access:</strong> Anyone</li>
+                    <li>Click <strong>"Deploy"</strong> and authorize</li>
+                    <li><strong>Copy the Web App URL</strong> (ends with /exec)</li>
+                </ol>
+            </div>
+            
+            <div class="setup-step">
+                <h4>Step 4: Save to Sidebar</h4>
+                <p>After getting your URL:</p>
+                <ol style="line-height: 2;">
+                    <li>Click the <strong>☰ menu</strong> (top left)</li>
+                    <li>Click <strong>"+ Add New Sheet"</strong></li>
+                    <li>Enter a name and paste your URL</li>
+                    <li>Click <strong>"Save"</strong></li>
+                    <li>Your sheet will appear in the sidebar - click it to load!</li>
+                </ol>
+            </div>
+        </div>
+        
+        <div class="sheet-config">
+            <div style="margin-bottom: 20px; padding: 20px; background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%); border-radius: 8px; border: 3px solid #28a745;">
+                <h3 style="color: #155724; margin-bottom: 10px;">🔗 Connect to Google Sheets</h3>
+                <div class="sheet-input-group">
+                    <input 
+                        type="text" 
+                        id="appsScriptUrl" 
+                        placeholder="Paste your Apps Script Web App URL here..."
+                        style="flex: 1; padding: 15px; border: 2px solid #28a745; border-radius: 8px; font-size: 1em;"
+                    >
+                    <button onclick="testConnection()" style="background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);">🧪 Test</button>
+                    <button onclick="connectToSheet()" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%);">🔗 Connect</button>
+                </div>
+                <div class="sheet-input-group" style="margin-top: 15px;">
+                    <button class="btn btn-primary" onclick="refreshData()" style="flex: 1;">🔄 Refresh</button>
+                    <button class="btn btn-primary" onclick="startAutoRefresh()" style="flex: 1;">▶️ Auto (30s)</button>
+                    <button class="btn btn-secondary" onclick="stopAutoRefresh()" style="flex: 1;">⏸️ Stop</button>
+                </div>
+            </div>
+            <div class="help-text">
+                💡 <strong>Tip:</strong> Save your sheets in the sidebar (☰) for quick access!
+                <br>
+                📊 Last update: <span id="lastUpdate">Never</span> | Auto-refresh: <span id="autoRefreshStatus">Off</span>
+            </div>
+        </div>
+        
+        <div class="stats-bar">
+            <div class="stat-card video">
+                <div class="stat-value" id="videoClips">0</div>
+                <div class="stat-label">Video Clips</div>
+            </div>
+            <div class="stat-card video">
+                <div class="stat-value" id="videoArchives">0</div>
+                <div class="stat-label">Video Archives</div>
+            </div>
+            <div class="stat-card video">
+                <div class="stat-value" id="videoDuration">00:00:00:00</div>
+                <div class="stat-label">Video Duration</div>
+            </div>
+            <div class="stat-card stills">
+                <div class="stat-value" id="stillsCount">0</div>
+                <div class="stat-label">Stills/Images</div>
+            </div>
+            <div class="stat-card stills">
+                <div class="stat-value" id="stillsArchives">0</div>
+                <div class="stat-label">Stills Archives</div>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <div class="control-group">
+                <label for="searchInput">🔍 Search</label>
+                <input type="text" id="searchInput" placeholder="Search by Archive, ID, Inv No, or File Name...">
+            </div>
+            
+            <div class="control-group">
+                <label for="sortSelect">⚡ Sort By</label>
+                <select id="sortSelect">
+                    <option value="duration-desc">Duration (Longest First)</option>
+                    <option value="duration-asc">Duration (Shortest First)</option>
+                    <option value="name-asc">Archive Name (A-Z)</option>
+                    <option value="name-desc">Archive Name (Z-A)</option>
+                    <option value="clips-desc">Clip Count (Most First)</option>
+                    <option value="clips-asc">Clip Count (Least First)</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label for="filterArchive">📁 Filter by Archive</label>
+                <select id="filterArchive">
+                    <option value="all">All Archives</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label for="viewMode">👁️ View Mode</label>
+                <select id="viewMode">
+                    <option value="all">Show All (Video + Stills)</option>
+                    <option value="video">Video Clips Only</option>
+                    <option value="stills">Stills/Images Only</option>
+                </select>
+            </div>
+            
+            <div class="button-group">
+                <button class="btn btn-primary" onclick="applyFilters()">Apply Filters</button>
+                <button class="btn btn-secondary" onclick="resetFilters()">Reset All</button>
+                <button class="btn btn-secondary" onclick="copyToEmail(event)">📋 Copy for Email</button>
+                <button class="btn btn-secondary" onclick="window.print()">🖨️ Print</button>
+            </div>
+        </div>
+        
+        <div class="content" id="content">
+            <div class="loading">
+                <h3>👋 Welcome to Live Archive Report!</h3>
+                <p style="margin: 20px 0;">Click the <strong>☰ menu</strong> to add your sheets, or paste a URL above to get started!</p>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let archiveData = [];
+        let filteredData = [];
+        let autoRefreshInterval = null;
+        let connectedUrl = '';
+        let savedSheets = [];
+        let currentSheetId = null;
+        let editingSheetId = null;
+        
+        // Load saved sheets on startup
+        function loadSavedSheets() {
+            const saved = localStorage.getItem('savedSheets');
+            savedSheets = saved ? JSON.parse(saved) : [];
+            renderSheetList();
+            
+            // Load last active sheet
+            const lastActive = localStorage.getItem('lastActiveSheet');
+            if (lastActive && savedSheets.find(s => s.id === lastActive)) {
+                loadSheet(lastActive);
+            }
+        }
+        
+        function renderSheetList() {
+            const list = document.getElementById('sheetList');
+            const emptyState = document.getElementById('emptyState');
+            
+            if (savedSheets.length === 0) {
+                list.style.display = 'none';
+                emptyState.style.display = 'block';
+            } else {
+                list.style.display = 'block';
+                emptyState.style.display = 'none';
+                
+                list.innerHTML = savedSheets.map(sheet => `
+                    <li class="sheet-item ${sheet.id === currentSheetId ? 'active' : ''}" onclick="loadSheet('${sheet.id}')">
+                        <div class="sheet-item-name">${sheet.name}</div>
+                        <div class="sheet-item-url">${sheet.url.substring(0, 40)}...</div>
+                        <div class="sheet-item-actions" onclick="event.stopPropagation()">
+                            <button class="action-btn" onclick="editSheet('${sheet.id}')" title="Edit">✏️</button>
+                            <button class="action-btn delete" onclick="deleteSheet('${sheet.id}')" title="Delete">🗑️</button>
+                        </div>
+                    </li>
+                `).join('');
+            }
+        }
+        
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('overlay');
+            sidebar.classList.toggle('open');
+            overlay.classList.toggle('show');
+        }
+        
+        function closeSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('overlay');
+            sidebar.classList.remove('open');
+            overlay.classList.remove('show');
+        }
+        
+        function showAddSheetModal() {
+            editingSheetId = null;
+            document.getElementById('modalTitle').textContent = 'Add New Sheet';
+            document.getElementById('sheetName').value = '';
+            document.getElementById('sheetUrl').value = '';
+            document.getElementById('sheetModal').classList.add('show');
+        }
+        
+        function editSheet(id) {
+            const sheet = savedSheets.find(s => s.id === id);
+            if (!sheet) return;
+            
+            editingSheetId = id;
+            document.getElementById('modalTitle').textContent = 'Edit Sheet';
+            document.getElementById('sheetName').value = sheet.name;
+            document.getElementById('sheetUrl').value = sheet.url;
+            document.getElementById('sheetModal').classList.add('show');
+        }
+        
+        function closeModal() {
+            document.getElementById('sheetModal').classList.remove('show');
+            editingSheetId = null;
+        }
+        
+        function saveSheet() {
+            const name = document.getElementById('sheetName').value.trim();
+            const url = document.getElementById('sheetUrl').value.trim();
+            
+            if (!name) {
+                alert('Please enter a name for this sheet');
+                return;
+            }
+            
+            if (!url || !url.includes('script.google.com') || !url.includes('/exec')) {
+                alert('Please enter a valid Apps Script Web App URL (should end with /exec)');
+                return;
+            }
+            
+            if (editingSheetId) {
+                const sheet = savedSheets.find(s => s.id === editingSheetId);
+                if (sheet) {
+                    sheet.name = name;
+                    sheet.url = url;
+                }
+            } else {
+                const newSheet = {
+                    id: 'sheet_' + Date.now(),
+                    name: name,
+                    url: url,
+                    addedAt: new Date().toISOString()
+                };
+                savedSheets.push(newSheet);
+            }
+            
+            localStorage.setItem('savedSheets', JSON.stringify(savedSheets));
+            renderSheetList();
+            closeModal();
+            
+            if (!editingSheetId && savedSheets.length > 0) {
+                const newSheet = savedSheets[savedSheets.length - 1];
+                loadSheet(newSheet.id);
+            }
+        }
+        
+        function deleteSheet(id) {
+            if (!confirm('Are you sure you want to delete this sheet?')) return;
+            
+            savedSheets = savedSheets.filter(s => s.id !== id);
+            localStorage.setItem('savedSheets', JSON.stringify(savedSheets));
+            
+            if (currentSheetId === id) {
+                currentSheetId = null;
+                connectedUrl = '';
+            }
+            
+            renderSheetList();
+        }
+        
+        function loadSheet(id) {
+            const sheet = savedSheets.find(s => s.id === id);
+            if (!sheet) return;
+            
+            currentSheetId = id;
+            connectedUrl = sheet.url;
+            localStorage.setItem('lastActiveSheet', id);
+            
+            document.getElementById('appsScriptUrl').value = sheet.url;
+            renderSheetList();
+            closeSidebar();
+            
+            refreshData();
+        }
+        
+        function testConnection() {
+            const url = document.getElementById('appsScriptUrl').value.trim();
+            
+            if (!url) {
+                alert('Please paste your Apps Script Web App URL first!');
+                return;
+            }
+            
+            if (!url.includes('script.google.com')) {
+                alert('❌ Invalid URL!\n\nThe URL should start with: https://script.google.com/');
+                return;
+            }
+            
+            if (!url.includes('/exec')) {
+                alert('⚠️ Warning: URL should end with /exec');
+            }
+            
+            window.open(url, '_blank');
+            alert('✅ Opening your URL in a new tab!\n\nWhat to look for:\n• If you see JSON data → Success!\n• If you see "Authorization required" → Click through and authorize\n• If you see an error → Check the setup instructions');
+        }
+        
+        function toggleSetup() {
+            const setup = document.getElementById('setupInstructions');
+            setup.style.display = setup.style.display === 'none' ? 'block' : 'none';
+        }
+        
+        function connectToSheet() {
+            const url = document.getElementById('appsScriptUrl').value.trim();
+            if (!url) {
+                alert('Please paste your Apps Script Web App URL');
+                return;
+            }
+            
+            if (!url.includes('script.google.com') || !url.includes('/exec')) {
+                alert('Invalid URL. Please use the Web App URL from Apps Script deployment (should end with /exec)');
+                return;
+            }
+            
+            connectedUrl = url;
+            refreshData();
+        }
+        
+        async function refreshData() {
+            if (!connectedUrl) {
+                alert('Please connect to your sheet first!');
+                return;
+            }
+            
+            updateLiveStatus('loading', 'Loading...');
+            document.getElementById('content').innerHTML = '<div class="loading">⏳ Fetching data...</div>';
+            
+            try {
+                const urlWithTimestamp = connectedUrl + (connectedUrl.includes('?') ? '&' : '?') + '_=' + Date.now();
+                
+                const response = await fetch(urlWithTimestamp, {
+                    method: 'GET',
+                    redirect: 'follow',
+                    headers: { 'Accept': 'application/json' }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                if (!Array.isArray(data) || data.length === 0) {
+                    throw new Error('No data returned');
+                }
+                
+                processData(data);
+                updateLiveStatus('success', 'Connected');
+                document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
+                
+            } catch (error) {
+                updateLiveStatus('error', 'Failed');
+                document.getElementById('content').innerHTML = `
+                    <div style="background: #fee; border: 2px solid #fcc; color: #c33; padding: 30px; border-radius: 12px; margin: 40px; text-align: center;">
+                        <h3>❌ Connection Error</h3>
+                        <p style="margin: 20px 0;"><strong>Error:</strong> ${error.message}</p>
+                        <button onclick="window.open('${connectedUrl}', '_blank')" style="margin-top: 20px; padding: 12px 24px; background: #667eea; color: white; border: none; border-radius: 8px; cursor: pointer;">
+                            🔗 Test URL in Browser
+                        </button>
+                    </div>
+                `;
+            }
+        }
+        
+        function processData(rows) {
+            const archiveMap = new Map();
+            
+            rows.forEach(row => {
+                const archive = (row.Archive || row.archive || '').toString().trim();
+                if (!archive) return;
+                
+                const id = (row.ID || row.id || '').toString().trim();
+                const invNo = (row.inv_no || row['inv no'] || row['Inv No'] || '').toString().trim();
+                const fileName = (row.FILE_NAME || row['FILE NAME'] || row['File Name'] || '').toString().trim();
+                const duration = (row.SOURCE_DURATION || row['SOURCE DURATION'] || row['Source Duration'] || row.Duration || '00:00:00:00').toString().trim();
+                const sourceIn = (row.SEQUENCE_IN || row['SEQUENCE IN'] || row.SOURCE_IN || row['SOURCE IN'] || row['Source In'] || '').toString().trim();
+                const sourceOut = (row.SEQUENCE_OUT || row['SEQUENCE OUT'] || row.SOURCE_OUT || row['SOURCE OUT'] || row['Source Out'] || '').toString().trim();
+                const link = (row.link || row.Link || row.URL || '').toString().trim();
+                
+                if (!archiveMap.has(archive)) {
+                    archiveMap.set(archive, {
+                        name: archive,
+                        clips: [],
+                        totalFrames: 0
+                    });
+                }
+                
+                archiveMap.get(archive).clips.push({
+                    id, invNo, fileName, duration, sourceIn, sourceOut, link
+                });
+            });
+            
+            archiveData = Array.from(archiveMap.values()).map(archive => {
+                const totalFrames = archive.clips.reduce((sum, clip) => sum + timecodeToFrames(clip.duration), 0);
+                return {
+                    name: archive.name,
+                    entries: archive.clips.length,
+                    clips: archive.clips,
+                    totalFrames: totalFrames,
+                    duration: framesToTimecode(totalFrames),
+                    type: totalFrames === 0 ? 'stills' : 'video'
+                };
+            });
+            
+            populateArchiveFilter();
+            resetFilters();
+        }
+        
+        function timecodeToFrames(tc) {
+            if (!tc || tc === '00:00:00:00') return 0;
+            const parts = tc.toString().split(':').map(p => parseInt(p) || 0);
+            if (parts.length !== 4) return 0;
+            const [h, m, s, f] = parts;
+            return h * 3600 * 30 + m * 60 * 30 + s * 30 + f;
+        }
+        
+        function framesToTimecode(frames) {
+            if (frames === 0) return '00:00:00:00';
+            const h = Math.floor(frames / (3600 * 30));
+            const m = Math.floor((frames % (3600 * 30)) / (60 * 30));
+            const s = Math.floor((frames % (60 * 30)) / 30);
+            const f = frames % 30;
+            return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}:${String(f).padStart(2, '0')}`;
+        }
+        
+        function updateLiveStatus(status, text) {
+            const dot = document.getElementById('liveDot');
+            const statusText = document.getElementById('liveStatus');
+            dot.className = 'live-dot';
+            if (status === 'error') dot.classList.add('error');
+            statusText.textContent = text;
+        }
+        
+        function startAutoRefresh() {
+            if (autoRefreshInterval) return;
+            if (!connectedUrl) {
+                alert('Please connect to your sheet first!');
+                return;
+            }
+            autoRefreshInterval = setInterval(() => refreshData(), 30000);
+            document.getElementById('autoRefreshStatus').textContent = 'On (30s)';
+        }
+        
+        function stopAutoRefresh() {
+            if (autoRefreshInterval) {
+                clearInterval(autoRefreshInterval);
+                autoRefreshInterval = null;
+            }
+            document.getElementById('autoRefreshStatus').textContent = 'Off';
+        }
+        
+        function populateArchiveFilter() {
+            const select = document.getElementById('filterArchive');
+            select.innerHTML = '<option value="all">All Archives</option>';
+            [...new Set(archiveData.map(a => a.name))].sort().forEach(archive => {
+                const option = document.createElement('option');
+                option.value = archive;
+                option.textContent = archive;
+                select.appendChild(option);
+            });
+        }
+        
+        function renderTables(data) {
+            const content = document.getElementById('content');
+            if (data.length === 0) {
+                content.innerHTML = '<div class="loading">No archives match your filters</div>';
+                return;
+            }
+            
+            const videoArchives = data.filter(a => a.type === 'video');
+            const stillsArchives = data.filter(a => a.type === 'stills');
+            
+            let html = '';
+            
+            if (videoArchives.length > 0) {
+                html += '<div class="section-divider video">🎬 VIDEO CLIPS</div>';
+                html += videoArchives.map(archive => `
+                    <div class="archive-section">
+                        <div class="archive-title">
+                            <span>${archive.name}</span>
+                            <span class="archive-meta">${archive.clips.length} clips</span>
+                        </div>
+                        <table class="archive-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 50px">#</th>
+                                    <th style="width: 100px">ID</th>
+                                    <th style="width: 100px">Inv No</th>
+                                    <th style="width: 200px">File Name</th>
+                                    <th style="width: 120px">Source In</th>
+                                    <th style="width: 120px">Source Out</th>
+                                    <th style="width: 120px">Duration</th>
+                                    <th style="width: 100px">Link</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${archive.clips.map((clip, i) => `
+                                    <tr>
+                                        <td>${i + 1}</td>
+                                        <td>${clip.id || '—'}</td>
+                                        <td>${clip.invNo || '—'}</td>
+                                        <td style="font-size: 0.9em;">${clip.fileName || '—'}</td>
+                                        <td class="duration-cell" style="font-size: 0.9em;">${clip.sourceIn || '—'}</td>
+                                        <td class="duration-cell" style="font-size: 0.9em;">${clip.sourceOut || '—'}</td>
+                                        <td class="duration-cell">${clip.duration}</td>
+                                        <td>${clip.link ? `<a href="${clip.link}" target="_blank" style="color: #667eea;">🔗</a>` : '—'}</td>
+                                    </tr>
+                                `).join('')}
+                                <tr class="total-row">
+                                    <td colspan="6"><strong>TOTAL</strong></td>
+                                    <td class="duration-cell">${archive.duration}</td>
+                                    <td></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                `).join('');
+            }
+            
+            if (stillsArchives.length > 0) {
+                html += '<div class="section-divider">📷 STILLS / IMAGES</div>';
+                html += stillsArchives.map(archive => `
+                    <div class="archive-section">
+                        <div class="archive-title stills">
+                            <span>${archive.name}</span>
+                            <span class="archive-meta">${archive.entries} stills</span>
+                        </div>
+                        <table class="archive-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 50px">#</th>
+                                    <th style="width: 100px">ID</th>
+                                    <th style="width: 100px">Inv No</th>
+                                    <th style="width: 250px">File Name</th>
+                                    <th style="width: 150px">Type</th>
+                                    <th style="width: 100px">Link</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${archive.clips.map((clip, i) => `
+                                    <tr>
+                                        <td>${i + 1}</td>
+                                        <td>${clip.id || '—'}</td>
+                                        <td>${clip.invNo || '—'}</td>
+                                        <td style="font-size: 0.9em;">${clip.fileName || '—'}</td>
+                                        <td>Still Image</td>
+                                        <td>${clip.link ? `<a href="${clip.link}" target="_blank" style="color: #667eea;">🔗</a>` : '—'}</td>
+                                    </tr>
+                                `).join('')}
+                                <tr class="total-row stills">
+                                    <td colspan="6"><strong>TOTAL: ${archive.entries} Still Images</strong></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                `).join('');
+            }
+            
+            content.innerHTML = html;
+            updateStats(data);
+        }
+        
+        function applyFilters() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const sortBy = document.getElementById('sortSelect').value;
+            const filterArchive = document.getElementById('filterArchive').value;
+            const viewMode = document.getElementById('viewMode').value;
+            
+            filteredData = archiveData.filter(archive => {
+                const matchesSearch = archive.name.toLowerCase().includes(searchTerm) ||
+                    archive.clips.some(c => 
+                        (c.id && c.id.toLowerCase().includes(searchTerm)) ||
+                        (c.invNo && c.invNo.toLowerCase().includes(searchTerm)) ||
+                        (c.fileName && c.fileName.toLowerCase().includes(searchTerm))
+                    );
+                
+                const matchesArchive = filterArchive === 'all' || archive.name === filterArchive;
+                let matchesView = true;
+                if (viewMode === 'video') matchesView = archive.type === 'video';
+                else if (viewMode === 'stills') matchesView = archive.type === 'stills';
+                
+                return matchesSearch && matchesArchive && matchesView;
+            });
+            
+            filteredData.sort((a, b) => {
+                switch(sortBy) {
+                    case 'duration-desc': return b.totalFrames - a.totalFrames;
+                    case 'duration-asc': return a.totalFrames - b.totalFrames;
+                    case 'name-asc': return a.name.localeCompare(b.name);
+                    case 'name-desc': return b.name.localeCompare(a.name);
+                    case 'clips-desc': return b.entries - a.entries;
+                    case 'clips-asc': return a.entries - b.entries;
+                    default: return 0;
+                }
+            });
+            
+            renderTables(filteredData);
+        }
+        
+        function resetFilters() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('sortSelect').value = 'duration-desc';
+            document.getElementById('filterArchive').value = 'all';
+            document.getElementById('viewMode').value = 'all';
+            applyFilters();
+        }
+        
+        function updateStats(data) {
+            const videoData = data.filter(a => a.type === 'video');
+            const stillsData = data.filter(a => a.type === 'stills');
+            const videoClips = videoData.reduce((sum, a) => sum + a.clips.length, 0);
+            const stillsCount = stillsData.reduce((sum, a) => sum + a.entries, 0);
+            const totalFrames = videoData.reduce((sum, a) => sum + a.totalFrames, 0);
+            
+            document.getElementById('videoClips').textContent = videoClips;
+            document.getElementById('videoArchives').textContent = videoData.length;
+            document.getElementById('videoDuration').textContent = framesToTimecode(totalFrames);
+            document.getElementById('stillsCount').textContent = stillsCount;
+            document.getElementById('stillsArchives').textContent = stillsData.length;
+        }
+        
+        function copyToEmail() {
+            // Use archiveData if filteredData is empty
+            const dataToUse = (filteredData && filteredData.length > 0) ? filteredData : archiveData;
+            
+            // Check if there's data to copy
+            if (!dataToUse || dataToUse.length === 0) {
+                alert('⚠️ No data to copy!\n\nPlease:\n1. Click the ☰ menu\n2. Select a sheet\n3. Wait for data to load\n4. Then try copying again');
+                return;
+            }
+            
+            const videoData = dataToUse.filter(a => a.type === 'video');
+            const stillsData = dataToUse.filter(a => a.type === 'stills');
+            const videoClips = videoData.reduce((sum, a) => sum + a.clips.length, 0);
+            const stillsCount = stillsData.reduce((sum, a) => sum + a.entries, 0);
+            const totalFrames = videoData.reduce((sum, a) => sum + a.totalFrames, 0);
+            const videoDuration = framesToTimecode(totalFrames);
+            
+            let emailText = '═══════════════════════════════════════════\n';
+            emailText += '📊 ARCHIVE REPORT SUMMARY\n';
+            emailText += '═══════════════════════════════════════════\n\n';
+            
+            emailText += '📹 VIDEO FOOTAGE:\n';
+            emailText += '   • Video Clips: ' + videoClips + '\n';
+            emailText += '   • Video Archives: ' + videoData.length + '\n';
+            emailText += '   • Total Duration: ' + videoDuration + '\n\n';
+            
+            emailText += '📷 STILLS/IMAGES:\n';
+            emailText += '   • Still Images: ' + stillsCount + '\n';
+            emailText += '   • Stills Archives: ' + stillsData.length + '\n\n';
+            
+            emailText += '═══════════════════════════════════════════\n\n';
+            
+            // Add video archives
+            if (videoData.length > 0) {
+                emailText += '🎬 VIDEO ARCHIVES DETAIL:\n\n';
+                
+                videoData.forEach(function(archive) {
+                    emailText += '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n';
+                    emailText += '📁 ' + archive.name + '\n';
+                    emailText += '   Clips: ' + archive.clips.length + ' | Duration: ' + archive.duration + '\n';
+                    emailText += '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n';
+                    
+                    archive.clips.forEach(function(clip, i) {
+                        emailText += (i + 1) + '. ';
+                        if (clip.id) emailText += 'ID: ' + clip.id + ' | ';
+                        if (clip.invNo) emailText += 'Inv: ' + clip.invNo + ' | ';
+                        emailText += (clip.fileName || 'Unnamed') + '\n';
+                        emailText += '   Duration: ' + clip.duration;
+                        if (clip.sourceIn) emailText += ' | In: ' + clip.sourceIn;
+                        if (clip.sourceOut) emailText += ' | Out: ' + clip.sourceOut;
+                        emailText += '\n';
+                        if (clip.link) emailText += '   Link: ' + clip.link + '\n';
+                        emailText += '\n';
+                    });
+                    
+                    emailText += 'TOTAL: ' + archive.duration + '\n\n\n';
+                });
+            }
+            
+            // Add stills archives
+            if (stillsData.length > 0) {
+                emailText += '📷 STILLS/IMAGES ARCHIVES DETAIL:\n\n';
+                
+                stillsData.forEach(function(archive) {
+                    emailText += '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n';
+                    emailText += '📁 ' + archive.name + '\n';
+                    emailText += '   Images: ' + archive.entries + '\n';
+                    emailText += '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n';
+                    
+                    archive.clips.forEach(function(clip, i) {
+                        emailText += (i + 1) + '. ';
+                        if (clip.id) emailText += 'ID: ' + clip.id + ' | ';
+                        if (clip.invNo) emailText += 'Inv: ' + clip.invNo + ' | ';
+                        emailText += (clip.fileName || 'Unnamed') + '\n';
+                        if (clip.link) emailText += '   Link: ' + clip.link + '\n';
+                        emailText += '\n';
+                    });
+                    
+                    emailText += 'TOTAL: ' + archive.entries + ' Still Images\n\n\n';
+                });
+            }
+            
+            emailText += '═══════════════════════════════════════════\n';
+            emailText += 'Generated: ' + new Date().toLocaleString() + '\n';
+            emailText += 'Source: Live Archive Report Tool\n';
+            emailText += '═══════════════════════════════════════════';
+            
+            // Try to copy using modern clipboard API
+            const copySuccess = function() {
+                alert('✅ SUCCESS!\n\nReport copied to clipboard!\n\nNow you can:\n1. Open your email\n2. Press Ctrl+V (or Cmd+V)\n3. Paste the report');
+            };
+            
+            const copyFallback = function() {
+                // Create temporary textarea
+                const textArea = document.createElement('textarea');
+                textArea.value = emailText;
+                textArea.style.position = 'fixed';
+                textArea.style.top = '0';
+                textArea.style.left = '0';
+                textArea.style.width = '2em';
+                textArea.style.height = '2em';
+                textArea.style.padding = '0';
+                textArea.style.border = 'none';
+                textArea.style.outline = 'none';
+                textArea.style.boxShadow = 'none';
+                textArea.style.background = 'transparent';
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                
+                try {
+                    const successful = document.execCommand('copy');
+                    document.body.removeChild(textArea);
+                    if (successful) {
+                        copySuccess();
+                    } else {
+                        alert('❌ Auto-copy failed.\n\nManual copy:\n1. Press Ctrl+A to select all\n2. Press Ctrl+C to copy\n3. Look for the report in a popup');
+                        showCopyPopup(emailText);
+                    }
+                } catch (err) {
+                    document.body.removeChild(textArea);
+                    alert('❌ Copy failed.\n\nShowing manual copy window...');
+                    showCopyPopup(emailText);
+                }
+            };
+            
+            // Try modern clipboard API first
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(emailText).then(copySuccess).catch(copyFallback);
+            } else {
+                copyFallback();
+            }
+        }
+        
+        function showCopyPopup(text) {
+            // Create modal with text to copy
+            const modal = document.createElement('div');
+            modal.style.position = 'fixed';
+            modal.style.top = '0';
+            modal.style.left = '0';
+            modal.style.width = '100%';
+            modal.style.height = '100%';
+            modal.style.background = 'rgba(0,0,0,0.8)';
+            modal.style.zIndex = '10000';
+            modal.style.display = 'flex';
+            modal.style.alignItems = 'center';
+            modal.style.justifyContent = 'center';
+            
+            const box = document.createElement('div');
+            box.style.background = 'white';
+            box.style.padding = '30px';
+            box.style.borderRadius = '12px';
+            box.style.maxWidth = '800px';
+            box.style.maxHeight = '80vh';
+            box.style.overflow = 'auto';
+            
+            const title = document.createElement('h3');
+            title.textContent = '📋 Copy This Text to Your Email';
+            title.style.marginBottom = '20px';
+            title.style.color = '#667eea';
+            
+            const instructions = document.createElement('p');
+            instructions.innerHTML = '<strong>How to copy:</strong><br>1. Click inside the box below<br>2. Press Ctrl+A (or Cmd+A) to select all<br>3. Press Ctrl+C (or Cmd+C) to copy<br>4. Close this window<br>5. Paste in your email';
+            instructions.style.marginBottom = '20px';
+            instructions.style.lineHeight = '1.8';
+            
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            textArea.style.width = '100%';
+            textArea.style.height = '400px';
+            textArea.style.padding = '15px';
+            textArea.style.border = '2px solid #667eea';
+            textArea.style.borderRadius = '8px';
+            textArea.style.fontFamily = 'monospace';
+            textArea.style.fontSize = '12px';
+            textArea.style.marginBottom = '20px';
+            
+            const closeBtn = document.createElement('button');
+            closeBtn.textContent = 'Close';
+            closeBtn.style.padding = '12px 30px';
+            closeBtn.style.background = '#667eea';
+            closeBtn.style.color = 'white';
+            closeBtn.style.border = 'none';
+            closeBtn.style.borderRadius = '8px';
+            closeBtn.style.cursor = 'pointer';
+            closeBtn.style.fontSize = '16px';
+            closeBtn.onclick = function() {
+                document.body.removeChild(modal);
+            };
+            
+            box.appendChild(title);
+            box.appendChild(instructions);
+            box.appendChild(textArea);
+            box.appendChild(closeBtn);
+            modal.appendChild(box);
+            document.body.appendChild(modal);
+            
+            // Auto-select text
+            textArea.select();
+        }
+        
+        window.onload = function() {
+            loadSavedSheets();
+        };
+    </script>
+</body>
+</html>

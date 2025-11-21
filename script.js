@@ -1,137 +1,216 @@
+// Live Archive Tool - main script with header info + sidebar + dark theme
+
 /*************************************************
- * LIVE ARCHIVE TOOL — FINAL CLEAN VERSION
- * Supports these exact sheet columns:
- * ID, inv no, FILE NAME, SOURCE IN, SOURCE OUT,
- * SOURCE DURATION, Link
+ * PAGE ROUTER
  *************************************************/
-
-
-/* =================================================
-   PAGE ROUTER — SWITCH BETWEEN PAGES
-================================================= */
-
 function showPage(page) {
-
-    // Hide all pages
+    // hide all pages
     document.querySelectorAll(".page").forEach(p => {
         p.style.display = "none";
         p.classList.remove("active");
     });
 
-    // Show selected page
+    // show selected
     const target = document.getElementById("page-" + page);
     if (target) {
         target.style.display = "block";
         target.classList.add("active");
     }
 
-    // Highlight active menu button
+    // update nav
     document.querySelectorAll(".nav-links a").forEach(a => a.classList.remove("active"));
     const nav = document.getElementById("nav-" + page);
     if (nav) nav.classList.add("active");
 
-    // Save last visited page
+    // remember last
     localStorage.setItem("lastPage", page);
 }
 
+/*************************************************
+ * THEME TOGGLE
+ *************************************************/
+function initThemeToggle() {
+    const btn = document.getElementById("themeToggle");
+    if (!btn) return;
 
-document.addEventListener("DOMContentLoaded", () => {
+    const saved = localStorage.getItem("theme") || "light";
+    if (saved === "dark") {
+        document.body.classList.add("dark");
+        btn.textContent = "Light";
+    } else {
+        btn.textContent = "Dark";
+    }
 
-    initArchiveUI();
-    loadSidebarSheets();
+    btn.addEventListener("click", () => {
+        const isDark = document.body.classList.toggle("dark");
+        localStorage.setItem("theme", isDark ? "dark" : "light");
+        btn.textContent = isDark ? "Light" : "Dark";
+    });
+}
 
-    const last = localStorage.getItem("lastPage") || "home";
-    showPage(last);
-});
+/*************************************************
+ * GLOBAL STATE (archives + header)
+ *************************************************/
+let connectedUrl = "";
+let archiveData = [];
+let filteredData = [];
+let allSheetsConfig = [];
+let currentSheetMeta = null;
 
+// default header info – used if some fields are missing
+const DEFAULT_META = {
+    production: "Michael W. King Productions, LLC., USA",
+    project: "The Rescuers",
+    researcher: "Frank Drauschke",
+    contact: "research@drauschke.de",
+    episodeLabel: ""
+};
 
+/*************************************************
+ * HEADER RENDERING
+ *************************************************/
+function makeEpisodeLabel(sheet) {
+    if (!sheet || !sheet.episode) return "";
+    const baseName = ((sheet.name || "").split(" ")[0] || "").replace(/_/g, " ");
+    if (!baseName) return sheet.episode;
+    const nice = baseName.charAt(0).toUpperCase() + baseName.slice(1).toLowerCase();
+    return sheet.episode + " " + nice;
+}
 
-/* =================================================
-   SIDEBAR — LOAD SHEETS FROM sheets-config.json
-================================================= */
+function setCurrentSheetMeta(meta) {
+    currentSheetMeta = Object.assign({}, DEFAULT_META, meta || {});
+    renderHeaderInfo();
+}
 
+function renderHeaderInfo() {
+    const meta = currentSheetMeta;
+    const ids = ["headerInfoHome", "headerInfoArchives", "headerInfoSummary"];
+    ids.forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+
+        if (!meta) {
+            el.innerHTML = "";
+            return;
+        }
+
+        const episodeText = meta.episodeLabel ? meta.episodeLabel : "";
+        const projectText = meta.project || "";
+        const prodText = meta.production || "";
+        const researcherText = meta.researcher || "";
+        const contactText = meta.contact || "";
+
+        el.innerHTML = `
+            <div class="header-info-box">
+                <div class="header-info-row"><span class="header-label">Production company:</span><span class="header-value">${prodText}</span></div>
+                <div class="header-info-row"><span class="header-label">Film project:</span><span class="header-value">${projectText}</span></div>
+                ${episodeText ? `<div class="header-info-row"><span class="header-label">Episode:</span><span class="header-value">${episodeText}</span></div>` : ""}
+                <div class="header-info-row"><span class="header-label">Researcher:</span><span class="header-value">${researcherText}</span></div>
+                <div class="header-info-row"><span class="header-label">Contact:</span><span class="header-value">${contactText}</span></div>
+            </div>
+        `;
+    });
+}
+
+/*************************************************
+ * SIDEBAR – LOAD SHEETS FROM sheets-config.json
+ *************************************************/
 async function loadSidebarSheets() {
-
     const list = document.getElementById("sidebarSheets");
     if (!list) return;
 
+    list.innerHTML = "<li class='sidebar-item'>Loading…</li>";
+
     try {
-        const r = await fetch("sheets-config.json?cache=" + Date.now());
-        const data = await r.json();
+        const res = await fetch("sheets-config.json?cache=" + Date.now());
+        const cfg = await res.json();
+        allSheetsConfig = Array.isArray(cfg.sheets) ? cfg.sheets : [];
 
         list.innerHTML = "";
 
-        data.sheets.forEach(sheet => {
-
+        allSheetsConfig.forEach((sheet, index) => {
             const li = document.createElement("li");
             li.className = "sidebar-item";
-            li.innerHTML = `<strong>${sheet.episode}_${sheet.name}</strong>`;
-
-            li.onclick = () => {
-
-                document.querySelectorAll(".sidebar-item")
-                    .forEach(i => i.classList.remove("sidebar-active"));
-
-                li.classList.add("sidebar-active");
-
-                // Prefill connect box
-                const input = document.getElementById("sheetUrlInput");
-                input.value = sheet.url;
-                connectedUrl = sheet.url;
-
-                document.getElementById("connectStatus").textContent =
-                    "Status: Ready (" + sheet.name + ")";
-            };
-
+            li.textContent = (sheet.episode ? sheet.episode + "_": "") + (sheet.name || "");
+            li.addEventListener("click", () => onSelectSheetFromSidebar(sheet, li));
             list.appendChild(li);
+
+            // auto-select first sheet
+            if (index === 0) {
+                onSelectSheetFromSidebar(sheet, li, true);
+            }
         });
 
     } catch (err) {
-        console.error("Sidebar load error:", err);
-        list.innerHTML = "<li>Error loading sheets</li>";
+        console.error("Error loading sheets-config.json", err);
+        list.innerHTML = "<li class='sidebar-item'>Error loading sheets</li>";
     }
 }
 
+function onSelectSheetFromSidebar(sheet, li, silentAuto) {
+    // active state
+    document.querySelectorAll(".sidebar-item").forEach(item => item.classList.remove("sidebar-active"));
+    if (li) li.classList.add("sidebar-active");
 
+    // connected URL and input
+    connectedUrl = sheet.url || "";
+    const input = document.getElementById("sheetUrlInput");
+    if (input) input.value = connectedUrl;
 
-/* =================================================
-   ARCHIVE PAGE UI BUILDER
-================================================= */
+    // header info
+    const episodeLabel = makeEpisodeLabel(sheet);
+    setCurrentSheetMeta({
+        production: sheet.production,
+        project: sheet.project,
+        researcher: sheet.researcher,
+        contact: sheet.contact,
+        episodeLabel: episodeLabel
+    });
 
+    // status text
+    const statusEl = document.getElementById("connectStatus");
+    if (statusEl) {
+        statusEl.textContent = "Status: Ready (" + (sheet.name || "Sheet") + ")";
+    }
+
+    // if user clicked (not auto) – load data
+    if (!silentAuto) {
+        refreshData();
+    }
+}
+
+/*************************************************
+ * ARCHIVE UI – BUILD STATIC PART
+ *************************************************/
 function initArchiveUI() {
+    const container = document.getElementById("archives-content");
+    if (!container) return;
 
-    document.getElementById("archives-content").innerHTML = `
-
+    container.innerHTML = `
         <div class="connect-box">
             <h3>Connect Google Sheet</h3>
-
             <input id="sheetUrlInput" class="archive-input"
                 type="text" placeholder="Paste Google Apps Script Web App URL">
-
             <div class="connect-btns">
                 <button id="btnTest" class="archive-btn secondary">Test</button>
                 <button id="btnConnect" class="archive-btn primary">Connect</button>
                 <button id="btnRefresh" class="archive-btn secondary">Refresh</button>
             </div>
-
             <div id="connectStatus" class="status-msg">Status: Not connected</div>
         </div>
 
         <div id="filtersPanel" style="display:none; margin-top:30px;">
             <div class="filters-wrapper">
-
                 <div class="filter-item">
                     <label>Search</label>
-                    <input id="searchInput" type="text" placeholder="Search …">
+                    <input id="searchInput" type="text" placeholder="Search by Archive, ID, Inv No, File Name…">
                 </div>
-
                 <div class="filter-item">
                     <label>Archive</label>
                     <select id="filterArchive">
                         <option value="all">All archives</option>
                     </select>
                 </div>
-
                 <div class="filter-item">
                     <label>Sort</label>
                     <select id="sortSelect">
@@ -143,9 +222,7 @@ function initArchiveUI() {
                         <option value="clips-asc">Fewest Clips</option>
                     </select>
                 </div>
-
             </div>
-
             <div class="archive-buttons">
                 <button class="archive-btn primary" id="btnApply">Apply</button>
                 <button class="archive-btn secondary" id="btnReset">Reset</button>
@@ -156,6 +233,7 @@ function initArchiveUI() {
         <div id="archiveTables" style="margin-top:25px;"></div>
     `;
 
+    // wire buttons
     document.getElementById("btnTest").onclick = testConnection;
     document.getElementById("btnConnect").onclick = connectToSheet;
     document.getElementById("btnRefresh").onclick = refreshData;
@@ -165,88 +243,102 @@ function initArchiveUI() {
     document.getElementById("btnCopy").onclick = copyAsTable;
 }
 
-
-
-/* =================================================
-   CONNECTION + DATA LOADING
-================================================= */
-
-let connectedUrl = "";
-let archiveData = [];
-let filteredData = [];
-
+/*************************************************
+ * CONNECTION + DATA LOADING
+ *************************************************/
 function testConnection() {
-    const url = document.getElementById("sheetUrlInput").value;
-    if (!url) return alert("Paste your /exec URL first.");
-    window.open(url, "_blank");
+    const input = document.getElementById("sheetUrlInput");
+    if (!input || !input.value.trim()) {
+        alert("Paste your /exec Web App URL first.");
+        return;
+    }
+    window.open(input.value.trim(), "_blank");
 }
 
 function connectToSheet() {
+    const input = document.getElementById("sheetUrlInput");
+    if (!input) return;
 
-    const url = document.getElementById("sheetUrlInput").value.trim();
+    const url = input.value.trim();
     if (!url || !url.includes("/exec")) {
-        alert("Invalid Web App URL.");
+        alert("Please paste a valid Web App URL (must end with /exec).");
+        return;
+    }
+    connectedUrl = url;
+
+    // if user connects manually, we still set default header
+    if (!currentSheetMeta) {
+        setCurrentSheetMeta(DEFAULT_META);
+    }
+
+    const statusEl = document.getElementById("connectStatus");
+    if (statusEl) statusEl.textContent = "Status: Connected (click Refresh)";
+}
+
+async function refreshData() {
+    if (!connectedUrl) {
+        alert("First choose a sheet from the left or paste a Web App URL.");
         return;
     }
 
-    connectedUrl = url;
-    document.getElementById("connectStatus").textContent = "Status: Connected (Click Refresh)";
-}
+    const statusEl = document.getElementById("connectStatus");
+    if (statusEl) statusEl.textContent = "Loading…";
 
-
-async function refreshData() {
-
-    if (!connectedUrl) return alert("Connect first.");
-
-    document.getElementById("connectStatus").textContent = "Loading…";
-    document.getElementById("archiveTables").innerHTML =
-        `<div class="loading-box">Loading from Google Apps Script…</div>`;
+    const tables = document.getElementById("archiveTables");
+    if (tables) {
+        tables.innerHTML = `<div class="loading-box">Loading data from Google Apps Script…</div>`;
+    }
 
     try {
+        const url = connectedUrl + (connectedUrl.includes("?") ? "&" : "?") + "_=" + Date.now();
+        const resp = await fetch(url, { method: "GET", headers: { "Accept": "application/json" } });
+        const data = await resp.json();
 
-        const url = connectedUrl + "?_=" + Date.now();
-        const resp = await fetch(url);
-        const rows = await resp.json();
+        if (!Array.isArray(data) || data.length === 0) {
+            throw new Error("No data returned from script.");
+        }
 
-        processRows(rows);
+        processRows(data);
 
-        document.getElementById("filtersPanel").style.display = "block";
-        document.getElementById("connectStatus").textContent = "Status: Data Loaded";
+        const filtersPanel = document.getElementById("filtersPanel");
+        if (filtersPanel) filtersPanel.style.display = "block";
+
+        if (statusEl) statusEl.textContent = "Status: Data Loaded";
 
     } catch (err) {
         console.error(err);
-        document.getElementById("connectStatus").textContent = "Error loading data";
+        if (statusEl) statusEl.textContent = "Error while loading data";
+        const tables2 = document.getElementById("archiveTables");
+        if (tables2) {
+            tables2.innerHTML = `<div class="loading-box">Error: ${err.message}</div>`;
+        }
     }
 }
 
-
-
-/* =================================================
-   PROCESS + MAP SHEET DATA
-================================================= */
-
+/*************************************************
+ * PROCESS DATA
+ *************************************************/
 function processRows(rows) {
-
     const map = new Map();
 
     rows.forEach(r => {
-
-        const archive = (r.Archive || r.archive || "").trim();
+        const archive = (r.Archive || r.archive || r.ARCHIVE || "").toString().trim();
         if (!archive) return;
 
-        const id = String(r.ID || "").trim();
-        const inv = String(r["inv no"] || r["Inv No"] || "").trim();
-        const file = String(r["FILE NAME"] || r["File Name"] || "").trim();
-        const sin = String(r["SOURCE IN"] || r["Source In"] || "").trim();
-        const sout = String(r["SOURCE OUT"] || r["Source Out"] || "").trim();
-        const dur = String(r["SOURCE DURATION"] || r["Duration"] || "").trim();
-        const link = String(r["Link"] || r["link"] || "").trim();
+        const id = (r.ID || r.id || "").toString().trim();
+        const inv = (r["inv no"] || r["INV NO"] || r["Inv No"] || "").toString().trim();
+        const file = (r["FILE NAME"] || r["File Name"] || r.FILE_NAME || "").toString().trim();
+        const sin = (r["SOURCE IN"] || r["Source In"] || r.SOURCE_IN || "").toString().trim();
+        const sout = (r["SOURCE OUT"] || r["Source Out"] || r.SOURCE_OUT || "").toString().trim();
+        const dur = (r["SOURCE DURATION"] || r["Source Duration"] || r.SOURCE_DURATION || r.Duration || "").toString().trim();
+        const link = (r["Link"] || r["link"] || r["URL"] || "").toString().trim();
 
-        if (!map.has(archive))
+        if (!map.has(archive)) {
             map.set(archive, { name: archive, clips: [], durations: [] });
+        }
 
         map.get(archive).clips.push({ id, inv, file, sin, sout, dur, link });
-        map.get(archive).durations.push(dur);
+        map.get(archive).durations.push(dur || "00:00:00:00");
     });
 
     archiveData = Array.from(map.values()).map(a => {
@@ -260,23 +352,19 @@ function processRows(rows) {
         };
     });
 
-    filteredData = [...archiveData];
-
+    filteredData = archiveData.slice();
     buildArchiveDropdown();
     renderTables(filteredData);
 }
 
-
-
-/* =================================================
-   FILTERS + SORT
-================================================= */
-
+/*************************************************
+ * FILTERS + SORT
+ *************************************************/
 function buildArchiveDropdown() {
-
     const sel = document.getElementById("filterArchive");
-    sel.innerHTML = `<option value="all">All archives</option>`;
+    if (!sel) return;
 
+    sel.innerHTML = `<option value="all">All archives</option>`;
     archiveData.forEach(a => {
         const o = document.createElement("option");
         o.value = a.name;
@@ -285,29 +373,27 @@ function buildArchiveDropdown() {
     });
 }
 
-
 function applyFilters() {
+    const termEl = document.getElementById("searchInput");
+    const arcEl = document.getElementById("filterArchive");
+    const sortEl = document.getElementById("sortSelect");
 
-    const term = document.getElementById("searchInput").value.toLowerCase();
-    const arc = document.getElementById("filterArchive").value;
-    const sort = document.getElementById("sortSelect").value;
+    const term = termEl ? termEl.value.toLowerCase() : "";
+    const arc = arcEl ? arcEl.value : "all";
+    const sort = sortEl ? sortEl.value : "duration-desc";
 
     filteredData = archiveData.filter(a => {
-
         const matchArchive = arc === "all" || a.name === arc;
-
         const matchSearch =
             a.name.toLowerCase().includes(term) ||
             a.clips.some(c =>
-                c.id.toLowerCase().includes(term) ||
-                c.inv.toLowerCase().includes(term) ||
-                c.file.toLowerCase().includes(term)
+                (c.id || "").toLowerCase().includes(term) ||
+                (c.inv || "").toLowerCase().includes(term) ||
+                (c.file || "").toLowerCase().includes(term)
             );
-
         return matchArchive && matchSearch;
     });
 
-    // Sorting
     filteredData.sort((a, b) => {
         switch (sort) {
             case "duration-desc": return b.totalFrames - a.totalFrames;
@@ -323,25 +409,29 @@ function applyFilters() {
     renderTables(filteredData);
 }
 
-
 function resetFilters() {
-    document.getElementById("searchInput").value = "";
-    document.getElementById("filterArchive").value = "all";
-    document.getElementById("sortSelect").value = "duration-desc";
+    const termEl = document.getElementById("searchInput");
+    const arcEl = document.getElementById("filterArchive");
+    const sortEl = document.getElementById("sortSelect");
 
-    filteredData = [...archiveData];
+    if (termEl) termEl.value = "";
+    if (arcEl) arcEl.value = "all";
+    if (sortEl) sortEl.value = "duration-desc";
+
+    filteredData = archiveData.slice();
     renderTables(filteredData);
 }
 
-
-
-/* =================================================
-   TIME CODE UTILITIES
-================================================= */
-
+/*************************************************
+ * TIME-CODE HELPERS
+ *************************************************/
 function tcToFrames(tc, fps = 25) {
     if (!tc) return 0;
-    const [h, m, s, f] = tc.split(":").map(n => parseInt(n) || 0);
+    const parts = tc.split(":").map(n => parseInt(n, 10) || 0);
+    const h = parts[0] || 0;
+    const m = parts[1] || 0;
+    const s = parts[2] || 0;
+    const f = parts[3] || 0;
     return h * 3600 * fps + m * 60 * fps + s * fps + f;
 }
 
@@ -351,42 +441,36 @@ function framesToTc(frames, fps = 25) {
     const m = Math.floor((frames % (3600 * fps)) / (60 * fps));
     const s = Math.floor((frames % (60 * fps)) / fps);
     const f = frames % fps;
-    const Z = n => String(n).padStart(2, "0");
-    return `${Z(h)}:${Z(m)}:${Z(s)}:${Z(f)}`;
+    const z = n => String(n).padStart(2, "0");
+    return `${z(h)}:${z(m)}:${z(s)}:${z(f)}`;
 }
 
 function sumDurations(list) {
-    const total = list.reduce((sum, tc) => sum + tcToFrames(tc), 0);
-    return framesToTc(total);
+    const totalFrames = (list || []).reduce((sum, tc) => sum + tcToFrames(tc), 0);
+    return framesToTc(totalFrames);
 }
 
-
-
-/* =================================================
-   RENDER TABLES
-================================================= */
-
+/*************************************************
+ * RENDER TABLES
+ *************************************************/
 function renderTables(data) {
-
     const container = document.getElementById("archiveTables");
+    if (!container) return;
 
-    if (!data.length) {
-        container.innerHTML = `<div class="loading-box">No results.</div>`;
+    if (!data || !data.length) {
+        container.innerHTML = `<div class="loading-box">No archives match your filters.</div>`;
         return;
     }
 
     let html = "";
 
     data.forEach(a => {
-
         html += `
         <div class="archive-section">
-
             <div class="archive-title">
-                ${a.name}
+                <span>${a.name}</span>
                 <span>${a.entries} clips • Total: ${a.totalDuration}</span>
             </div>
-
             <table class="archive-table">
                 <thead>
                     <tr>
@@ -400,30 +484,26 @@ function renderTables(data) {
                         <th>Link</th>
                     </tr>
                 </thead>
-
                 <tbody>
                     ${a.clips.map((c, i) => `
                         <tr>
                             <td>${i + 1}</td>
-                            <td>${c.id}</td>
-                            <td>${c.inv}</td>
-                            <td style="max-width:350px; white-space:normal;">${c.file}</td>
-                            <td>${c.sin}</td>
-                            <td>${c.sout}</td>
-                            <td class="duration-cell">${c.dur}</td>
+                            <td>${c.id || ""}</td>
+                            <td>${c.inv || ""}</td>
+                            <td style="max-width:380px;white-space:normal;">${c.file || ""}</td>
+                            <td>${c.sin || ""}</td>
+                            <td>${c.sout || ""}</td>
+                            <td class="duration-cell">${c.dur || ""}</td>
                             <td>${c.link ? `<a href="${c.link}" target="_blank">Link</a>` : ""}</td>
                         </tr>
                     `).join("")}
-
                     <tr class="total-row">
                         <td colspan="6"><strong>Total</strong></td>
                         <td><strong>${a.totalDuration}</strong></td>
                         <td></td>
                     </tr>
                 </tbody>
-
             </table>
-
         </div>
         `;
     });
@@ -431,14 +511,69 @@ function renderTables(data) {
     container.innerHTML = html;
 }
 
-
-
-/* =================================================
-   COPY TABLE CONTENT
-================================================= */
-
+/*************************************************
+ * COPY TABLE + HEADER
+ *************************************************/
 function copyAsTable() {
-    const text = document.getElementById("archiveTables").innerText;
-    navigator.clipboard.writeText(text);
-    alert("Copied!");
+    const container = document.getElementById("archiveTables");
+    if (!container || !container.innerText.trim()) {
+        alert("No data to copy yet.");
+        return;
+    }
+
+    const meta = Object.assign({}, DEFAULT_META, currentSheetMeta || {});
+    const episodeLine = meta.episodeLabel ? `Episode: ${meta.episodeLabel}\n` : "";
+
+    const headerText =
+        `Production company: ${meta.production}\n` +
+        `Film project: ${meta.project}\n` +
+        episodeLine +
+        `Researcher: ${meta.researcher}\n` +
+        `Contact: ${meta.contact}\n`;
+
+    const tableText = container.innerText;
+    const finalText = headerText + "\n" + tableText;
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(finalText)
+            .then(() => alert("Header + table copied to clipboard."))
+            .catch(() => fallbackCopy(finalText));
+    } else {
+        fallbackCopy(finalText);
+    }
 }
+
+function fallbackCopy(text) {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.left = "-9999px";
+    document.body.appendChild(ta);
+    ta.select();
+    try {
+        document.execCommand("copy");
+        alert("Header + table copied to clipboard.");
+    } catch (e) {
+        alert("Copy failed in this browser.");
+    }
+    document.body.removeChild(ta);
+}
+
+/*************************************************
+ * INITIALISE EVERYTHING ON LOAD
+ *************************************************/
+document.addEventListener("DOMContentLoaded", () => {
+    // router
+    const last = localStorage.getItem("lastPage") || "home";
+    showPage(last);
+
+    // theme
+    initThemeToggle();
+
+    // archive UI + sidebar
+    initArchiveUI();
+    loadSidebarSheets();
+
+    // default header meta (used until user picks a sheet)
+    setCurrentSheetMeta(DEFAULT_META);
+});

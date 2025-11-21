@@ -402,3 +402,45 @@ function copyAsTable() {
     navigator.clipboard.writeText(text);
     alert("Copied!");
 }
+/* ---------------------------------------
+   SIDEBAR — LOAD SHEETS FROM CONFIG
+----------------------------------------*/
+async function loadSheetSidebar() {
+    const list = document.getElementById("sheetList");
+    list.innerHTML = "<li>Loading…</li>";
+
+    try {
+        const res = await fetch("sheets-config.json");
+        const config = await res.json();
+
+        list.innerHTML = "";
+
+        config.sheets.forEach(sheet => {
+            const li = document.createElement("li");
+            li.textContent = `${sheet.episode}_${sheet.name}`;
+            li.onclick = () => {
+                document.querySelectorAll(".sheet-list li").forEach(x => x.classList.remove("active"));
+                li.classList.add("active");
+                loadSheetDirect(sheet);  // loads the table
+            };
+            list.appendChild(li);
+        });
+
+    } catch (e) {
+        list.innerHTML = "<li>Error loading sheets</li>";
+    }
+}
+
+/* ---------------------------------------
+   SIDEBAR MOBILE TOGGLE
+----------------------------------------*/
+document.getElementById("sidebarToggle").onclick = () => {
+    document.getElementById("sidebar").classList.toggle("open");
+};
+
+/* ---------------------------------------
+   RUN ON START
+----------------------------------------*/
+loadSheetSidebar();
+   }
+}

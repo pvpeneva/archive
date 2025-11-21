@@ -215,4 +215,151 @@ function processData(rows) {
         if (!map.has(archive))
             map.set(archive, { name: archive, clips: [], durations: [] });
 
-        map.get(archive).
+        map.get(archive).clips.push(row);
+        map.get(archive).durations.push(row.Duration || row.duration || "00:00:00:00");
+    });
+
+    archiveData = Array.from(map.values());
+    filteredData = archiveData;
+
+    buildArchiveFilter();
+    renderTables(filteredData);
+}
+
+
+/* ---------------------------------------------
+   ARCHIVE FILTER
+--------------------------------------------- */
+function buildArchiveFilter() {
+    const select = document.getElementById("filterArchive");
+    select.innerHTML = `<option value="all">All archives</option>`;
+
+    archiveData.forEach(a => {
+        const opt = document.createElement("option");
+        opt.value = a.name;
+        opt.textContent = a.name;
+        select.appendChild(opt);
+    });
+}
+
+
+/* ---------------------------------------------
+   APPLY FILTERS
+--------------------------------------------- */
+function applyFilters() {
+    const term = document.getElementById("searchInput").value.toLowerCase();
+    const archiveName = document.getElementById("filterArchive").value;
+    const mode = document.getElementById("viewMode").value;
+    const sort = document.getElementById("sortSelect").value;
+
+    filteredData = archiveData.filter(a => {
+        let okSearch =
+            a.name.toLowerCase().includes(term) ||
+            a.clips.some(c =>
+                (c.ID || "").toLowerCase().includes(term) ||
+                (c["File Name"] || "").toLowerCase().includes(term)
+            );
+
+        let okArchive = archiveName === "all" || archiveName === a.name;
+
+        let okMode = true;
+        if (mode === "video") okMode = !a.name.toLowerCase().includes("still");
+        if (mode === "stills") okMode = a.name.toLowerCase().includes("still");
+
+        return okSearch && okArchive && okMode;
+    });
+
+    renderTables(filteredData);
+}
+
+
+/* ---------------------------------------------
+   RESET
+--------------------------------------------- */
+function resetFilters() {
+    document.getElementById("searchInput").value = "";
+    document.getElementById("filterArchive").value = "all";
+    document.getElementById("viewMode").value = "all";
+    document.getElementById("sortSelect").value = "duration-desc";
+
+    filteredData = archiveData;
+    renderTables(filteredData);
+}
+
+
+/* ---------------------------------------------
+   RENDER ARCHIVE TABLES
+--------------------------------------------- */
+function renderTables(data) {
+    const container = document.getElementById("archiveTables");
+    if (!data.length) {
+        container.innerHTML = `<div class="loading-box">No results.</div>`;
+        return;
+    }
+
+    let html = "";
+
+    data.forEach(a => {
+        html += `
+        <div class="archive-section">
+            <div class="archive-title">
+                ${a.name}
+                <span>${a.clips.length} clips</span>
+            </div>
+
+            <table class="archive-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>ID</th>
+                        <th>Inv No</th>
+                        <th>File</th>
+                        <th>Source In</th>
+                        <th>Source Out</th>
+                        <th>Duration</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    ${a.clips
+                        .map(
+                            (c, i) => `
+                        <tr>
+                            <td>${i + 1}</td>
+                            <td>${c.ID || ""}</td>
+                            <td>${c["Inv No"] || c.inv_no || ""}</td>
+                            <td>${c["File Name"] || ""}</td>
+                            <td>${c["Source In"] || ""}</td>
+                            <td>${c["Source Out"] || ""}</td>
+                            <td class="duration-cell">${c.Duration || "00:00:00:00"}</td>
+                        </tr>`
+                        )
+                        .join("")}
+                </tbody>
+            </table>
+        </div>
+        `;
+    });
+
+    container.innerHTML = html;
+}
+
+
+/* ---------------------------------------------
+   COPY AS TABLE
+--------------------------------------------- */
+function copyAsTable() {
+    const html = document.getElementById("archiveTables").innerHTML;
+
+    navigator.clipboard.writeText(html.replace(/<[^>]*>/g, ""))
+        .then(() => alert("Copied!"))
+        .catch(() => alert("Copy failed"));
+}
+
+
+/* ---------------------------------------------
+   EXPORT TO EXCEL
+--------------------------------------------- */
+function exportToExcel() {
+    alert("Excel export can be added later. Function placeholder.");
+}

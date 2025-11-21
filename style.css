@@ -151,6 +151,7 @@ body {
     margin-bottom: 8px;
     font-size: 1.05rem;
 }
+
 /* ------------------------------------
    PAGE: ARCHIVES
 ------------------------------------- */
@@ -346,6 +347,64 @@ body {
     border: 1px solid #eee;
 }
 /* ------------------------------------
+   SIDEBAR FOR PREDEFINED SHEETS
+------------------------------------- */
+
+.sidebar {
+    width: 260px;
+    background: #ffffff;
+    border-radius: 14px;
+    padding: 20px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+    float: left;
+    margin-right: 30px;
+}
+
+.sidebar-title {
+    font-size: 1.2rem;
+    font-weight: 800;
+    margin-bottom: 20px;
+    color: #444;
+}
+
+.sidebar-list {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+}
+
+.sidebar-item {
+    padding: 12px 14px;
+    border-radius: 10px;
+    background: #f4f4fb;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: 0.2s;
+    border: 1px solid #e6e6f5;
+    font-weight: 600;
+    color: #444;
+}
+
+.sidebar-item:hover {
+    background: #e7e7ff;
+    transform: translateX(4px);
+}
+
+.sidebar-item strong {
+    font-size: 0.95rem;
+}
+
+.sidebar-active {
+    background: #dcdcff !important;
+    border: 1px solid #a4a4ff !important;
+}
+
+/* Ensure page layout aligns when sidebar is present */
+#page-archives .archives-page-container {
+    margin-left: 300px; /* pushes main content right*/
+}
+/* ------------------------------------
    PAGE: SUMMARY
 ------------------------------------- */
 
@@ -492,6 +551,17 @@ body {
 /* ------------------------------------
    MOBILE ADAPTATION
 ------------------------------------- */
+
+@media (max-width: 1020px) {
+    #page-archives .archives-page-container {
+        margin-left: 0 !important;
+    }
+    .sidebar {
+        float: none;
+        width: 100%;
+        margin-bottom: 30px;
+    }
+}
 
 @media (max-width: 768px) {
     .page {

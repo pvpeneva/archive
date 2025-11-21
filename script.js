@@ -43,6 +43,56 @@ const pricingConfig = {
 /* -------------------------------------------
     ИНИЦИАЛИЗАЦИЯ НА ARCHIVES UI
 -------------------------------------------- */
+/* -------------------------------------------------------
+   LOAD SHEETS FROM sheets-config.json AND BUILD SIDEBAR
+--------------------------------------------------------- */
+
+let predefinedSheets = [];
+
+async function loadPredefinedSheets() {
+    try {
+        const resp = await fetch('sheets-config.json?ver=' + Date.now());
+        const json = await resp.json();
+
+        if (!json.sheets) return;
+
+        predefinedSheets = json.sheets;
+        renderSheetsSidebar();
+
+    } catch (e) {
+        console.error("Error loading sheets-config.json:", e);
+    }
+}
+
+function renderSheetsSidebar() {
+    const sidebar = document.getElementById('sheets-sidebar');
+
+    if (!sidebar) return;
+
+    sidebar.innerHTML = `
+        <h3 class="sidebar-title">My Sheets</h3>
+        <ul class="sidebar-list">
+            ${predefinedSheets.map(s => `
+                <li class="sidebar-item" onclick="selectSheet('${s.id}')">
+                    <strong>${s.episode}_${s.name}</strong>
+                </li>
+            `).join('')}
+        </ul>
+    `;
+}
+
+/* Auto-connect selected sheet */
+function selectSheet(id) {
+    const sheet = predefinedSheets.find(s => s.id === id);
+    if (!sheet) return;
+
+    connectedUrl = sheet.url;
+
+    document.getElementById("appsScriptUrl").value = sheet.url;
+    setStatus("Connected (loading…)", true);
+
+    refreshData();
+}
 
 function initArchivesUI() {
     const container = document.getElementById('archives-content');

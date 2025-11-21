@@ -1,102 +1,101 @@
-/* ---------------------------------------------
-   PAGE ROUTER – switch between pages
---------------------------------------------- */
+/*************************************************
+ * SIMPLE LIVE ARCHIVE TOOL – SCRIPT.JS
+ * Работи с index.html и style.css от разговора
+ *************************************************/
+
+
+/* =========================
+   PAGE ROUTER
+========================= */
+
 function showPage(page) {
-    document.querySelectorAll('.page').forEach(p => {
-        p.classList.remove('active');
-        p.style.display = 'none';
+    // скрий всички страници
+    document.querySelectorAll(".page").forEach(p => {
+        p.classList.remove("active");
+        p.style.display = "none";
     });
 
-    const target = document.getElementById('page-' + page);
+    // покажи избраната
+    const target = document.getElementById("page-" + page);
     if (target) {
-        target.classList.add('active');
-        target.style.display = 'block';
+        target.classList.add("active");
+        target.style.display = "block";
     }
 
-    document.querySelectorAll('.nav-links a').forEach(a => a.classList.remove('active'));
-    const activeNav = document.getElementById('nav-' + page);
-    if (activeNav) activeNav.classList.add('active');
+    // навигация
+    document.querySelectorAll(".nav-links a").forEach(a => a.classList.remove("active"));
+    const nav = document.getElementById("nav-" + page);
+    if (nav) nav.classList.add("active");
 
-    localStorage.setItem('lastPage', page);
-}
-
-document.addEventListener("DOMContentLoaded", () => {
-    const last = localStorage.getItem('lastPage') || 'home';
-    showPage(last);
-    loadSidebarSheets();
-});
-
-
-/* ---------------------------------------------
-   LOAD SIDEBAR SHEETS FROM sheets-config.json
---------------------------------------------- */
-async function loadSidebarSheets() {
-    try {
-        const response = await fetch("sheets-config.json");
-        const data = await response.json();
-
-        const list = document.getElementById("sidebarSheets");
-        list.innerHTML = "";
-
-        data.sheets.forEach(sheet => {
-            const li = document.createElement("li");
-            li.classList.add("sidebar-item");
-            li.innerHTML = `<strong>${sheet.episode}_${sheet.name}</strong>`;
-
-            li.onclick = () => {
-                document.getElementById("sheetUrlInput")?.focus();
-
-                // Insert URL in input field
-                if (document.getElementById("sheetUrlInput")) {
-                    document.getElementById("sheetUrlInput").value = sheet.url;
-                }
-
-                document.querySelectorAll(".sidebar-item")
-                    .forEach(i => i.classList.remove("sidebar-active"));
-
-                li.classList.add("sidebar-active");
-            };
-
-            list.appendChild(li);
-        });
-    } catch (e) {
-        console.error("Sidebar load error:", e);
-    }
+    localStorage.setItem("lastPage", page);
 }
 
 
-/* ---------------------------------------------
-   ARCHIVE SYSTEM ENGINE
---------------------------------------------- */
-let archiveData = [];
-let filteredData = [];
+/* =========================
+   GLOBAL STATE
+========================= */
+
 let connectedUrl = "";
-let autoRefreshTimer = null;
+let archiveData = [];     // [{name, clips:[], type, totalFrames, duration}]
+let filteredData = [];
 
 
-/* Inject dynamic UI into Archives tab */
+/* =========================
+   HELPERS – TIMECODE
+========================= */
+
+function timecodeToFrames(tc, fps = 25) {
+    if (!tc) return 0;
+    const parts = tc.toString().split(":").map(x => parseInt(x, 10) || 0);
+    while (parts.length < 4) parts.unshift(0); // ensure h:m:s:f
+    const [h, m, s, f] = parts;
+    return h * 3600 * fps + m * 60 * fps + s * fps + f;
+}
+
+function framesToTimecode(frames, fps = 25) {
+    if (!frames || frames <= 0) return "00:00:00:00";
+    const h = Math.floor(frames / (3600 * fps));
+    const m = Math.floor((frames % (3600 * fps)) / (60 * fps));
+    const s = Math.floor((frames % (60 * fps)) / fps);
+    const f = frames % fps;
+    const pad = n => String(n).padStart(2, "0");
+    return `${pad(h)}:${pad(m)}:${pad(s)}:${pad(f)}`;
+}
+
+function sumTimecodes(arr, fps = 25) {
+    const totalFrames = arr.reduce((sum, tc) => sum + timecodeToFrames(tc, fps), 0);
+    return framesToTimecode(totalFrames, fps);
+}
+
+
+/* =========================
+   BUILD ARCHIVE UI IN PAGE
+========================= */
+
 function initArchiveUI() {
-    document.getElementById("archives-content").innerHTML = `
+    const container = document.getElementById("archives-content");
+    if (!container) return;
+
+    container.innerHTML = `
         <div class="connect-box">
-
             <h3>Connect Google Sheet</h3>
+            <p>Paste your Google Apps Script Web App URL (that reads your archive sheet).</p>
 
-            <input id="sheetUrlInput" 
+            <input id="sheetUrlInput"
                    class="archive-input"
                    type="text"
-                   placeholder="Paste your Google Apps Script Web App URL (must end with /exec)">
-            
+                   placeholder="https://script.google.com/macros/s/.../exec">
+
             <div class="connect-btns">
-                <button class="archive-btn secondary" onclick="testConnection()">Test</button>
-                <button class="archive-btn primary" onclick="connectToSheet()">Connect</button>
-                <button class="archive-btn secondary" onclick="refreshData()">Refresh</button>
+                <button class="archive-btn secondary" id="btnTest">Test</button>
+                <button class="archive-btn primary"   id="btnConnect">Connect</button>
+                <button class="archive-btn secondary" id="btnRefresh">Refresh</button>
             </div>
 
             <div id="connectStatus" class="status-msg">Status: Not connected</div>
         </div>
 
         <div id="filtersPanel" style="display:none; margin-top:30px;">
-
             <div class="filters-wrapper">
                 <div class="filter-item">
                     <label>Search</label>
@@ -105,15 +104,17 @@ function initArchiveUI() {
 
                 <div class="filter-item">
                     <label>Archive</label>
-                    <select id="filterArchive"><option value="all">All archives</option></select>
+                    <select id="filterArchive">
+                        <option value="all">All archives</option>
+                    </select>
                 </div>
 
                 <div class="filter-item">
                     <label>View Mode</label>
                     <select id="viewMode">
                         <option value="all">Video + Stills</option>
-                        <option value="video">Video Only</option>
-                        <option value="stills">Stills Only</option>
+                        <option value="video">Video only</option>
+                        <option value="stills">Stills only</option>
                     </select>
                 </div>
 
@@ -131,210 +132,312 @@ function initArchiveUI() {
             </div>
 
             <div class="archive-buttons">
-                <button class="archive-btn primary" onclick="applyFilters()">Apply Filters</button>
-                <button class="archive-btn secondary" onclick="resetFilters()">Reset</button>
-                <button class="archive-btn success" onclick="copyAsTable()">Copy as Table</button>
-                <button class="archive-btn success" onclick="exportToExcel()">Export to Excel</button>
+                <button class="archive-btn primary"   id="btnApply">Apply Filters</button>
+                <button class="archive-btn secondary" id="btnReset">Reset</button>
+                <button class="archive-btn success"   id="btnCopy">Copy as Table</button>
+                <button class="archive-btn success"   id="btnExport">Export to Excel</button>
             </div>
         </div>
 
-        <div id="archiveTables"></div>
+        <div id="archiveTables" style="margin-top:30px;"></div>
     `;
+
+    // hook up buttons
+    document.getElementById("btnTest").onclick = testConnection;
+    document.getElementById("btnConnect").onclick = connectToSheet;
+    document.getElementById("btnRefresh").onclick = refreshData;
+    document.getElementById("btnApply").onclick = applyFilters;
+    document.getElementById("btnReset").onclick = resetFilters;
+    document.getElementById("btnCopy").onclick = copyAsTable;
+    document.getElementById("btnExport").onclick = exportToExcel;
 }
 
-initArchiveUI();
+
+/* =========================
+   SIDEBAR: LOAD SHEETS
+========================= */
+
+async function loadSidebarSheets() {
+    const list = document.getElementById("sidebarSheets");
+    if (!list) return;
+
+    try {
+        const resp = await fetch("sheets-config.json?cache=" + Date.now());
+        const data = await resp.json();
+        if (!data || !Array.isArray(data.sheets)) return;
+
+        list.innerHTML = "";
+
+        data.sheets.forEach(sheet => {
+            const li = document.createElement("li");
+            li.className = "sidebar-item";
+            li.innerHTML = `<strong>${sheet.episode}_${sheet.name}</strong>`;
+            li.addEventListener("click", () => {
+                // активираме визуално
+                document.querySelectorAll(".sidebar-item")
+                    .forEach(el => el.classList.remove("sidebar-active"));
+                li.classList.add("sidebar-active");
+
+                // слагаме URL-а в полето
+                const input = document.getElementById("sheetUrlInput");
+                if (input) input.value = sheet.url || "";
+
+                // запомняме като connectedUrl
+                connectedUrl = sheet.url || "";
+                document.getElementById("connectStatus").textContent =
+                    "Status: Ready to refresh (" + (sheet.name || "") + ")";
+            });
+            list.appendChild(li);
+        });
+    } catch (err) {
+        console.error("Error loading sheets-config.json", err);
+    }
+}
 
 
-/* ---------------------------------------------
-   TEST CONNECTION
---------------------------------------------- */
+/* =========================
+   CONNECTION / FETCH
+========================= */
+
 function testConnection() {
-    const url = document.getElementById("sheetUrlInput").value;
-    if (!url.includes("/exec")) {
-        alert("URL must end with /exec");
+    const url = document.getElementById("sheetUrlInput").value.trim();
+    if (!url) {
+        alert("Please paste your Apps Script Web App URL first.");
+        return;
+    }
+    if (!url.includes("script.google.com") || !url.includes("/exec")) {
+        alert("The URL does not look like a valid Apps Script Web App (/exec).");
         return;
     }
     window.open(url, "_blank");
 }
 
-
-/* ---------------------------------------------
-    CONNECT TO SHEET
---------------------------------------------- */
 function connectToSheet() {
     const url = document.getElementById("sheetUrlInput").value.trim();
-    if (!url || !url.includes("/exec")) {
-        alert("Please enter a valid Apps Script Web App URL.");
+    if (!url) {
+        alert("Please paste your Apps Script Web App URL first.");
         return;
     }
     connectedUrl = url;
-
-    document.getElementById("connectStatus").innerHTML = "Status: Connecting…";
-    refreshData();
+    document.getElementById("connectStatus").textContent = "Status: Connected (click Refresh to load)";
 }
 
-
-/* ---------------------------------------------
-    FETCH DATA FROM GOOGLE SHEET
---------------------------------------------- */
 async function refreshData() {
     if (!connectedUrl) {
-        alert("Connect first.");
+        alert("Please connect to a sheet first.");
         return;
     }
 
+    document.getElementById("connectStatus").textContent = "Status: Loading data…";
+    document.getElementById("archiveTables").innerHTML =
+        `<div class="loading-box">Loading from Google Apps Script…</div>`;
+
     try {
-        const response = await fetch(connectedUrl + "?_=" + Date.now());
-        const rows = await response.json();
+        const url = connectedUrl + (connectedUrl.includes("?") ? "&" : "?") + "_=" + Date.now();
+        const resp = await fetch(url);
+        const rows = await resp.json();
 
-        document.getElementById("connectStatus").innerHTML =
-            "Status: Connected & data loaded";
+        if (!Array.isArray(rows) || rows.length === 0) {
+            document.getElementById("connectStatus").textContent = "Status: No data returned";
+            document.getElementById("archiveTables").innerHTML =
+                `<div class="loading-box">No rows received from web app.</div>`;
+            return;
+        }
 
-        processData(rows);
-
+        processRows(rows);
         document.getElementById("filtersPanel").style.display = "block";
+        document.getElementById("connectStatus").textContent = "Status: Connected & data loaded";
 
-    } catch (e) {
-        console.error(e);
-        document.getElementById("connectStatus").innerHTML =
-            "Status: Error loading data";
+    } catch (err) {
+        console.error(err);
+        document.getElementById("connectStatus").textContent =
+            "Status: Error loading data (" + err.message + ")";
+        document.getElementById("archiveTables").innerHTML =
+            `<div class="loading-box">Error loading data. Check console.</div>`;
     }
 }
 
 
-/* ---------------------------------------------
-   PROCESS DATA → BUILD ARCHIVE STRUCTURE
---------------------------------------------- */
-function processData(rows) {
+/* =========================
+   PROCESS SHEET ROWS
+========================= */
+
+function processRows(rows) {
     const map = new Map();
 
     rows.forEach(row => {
-        const archive = (row.Archive || row.ARCHIVE || "").trim();
+        const archive =
+            (row.Archive || row.ARCHIVE || row.archive || "").toString().trim();
         if (!archive) return;
 
-        if (!map.has(archive))
-            map.set(archive, { name: archive, clips: [], durations: [] });
+        const id = (row.ID || row.id || "").toString().trim();
+        const invNo =
+            (row["Inv No"] || row["inv_no"] || row.inv_no || "").toString().trim();
+        const fileName =
+            (row["File Name"] || row["FILE_NAME"] || row.FILE_NAME || "").toString().trim();
+        const sourceIn =
+            (row["Source In"] || row.SOURCE_IN || "").toString().trim();
+        const sourceOut =
+            (row["Source Out"] || row.SOURCE_OUT || "").toString().trim();
+        const duration =
+            (row.Duration || row.duration || row["Source Duration"] || row.SOURCE_DURATION || "00:00:00:00")
+                .toString()
+                .trim();
 
-        map.get(archive).clips.push(row);
-        map.get(archive).durations.push(row.Duration || row.duration || "00:00:00:00");
+        if (!map.has(archive)) {
+            map.set(archive, { name: archive, clips: [], allDurations: [] });
+        }
+
+        map.get(archive).clips.push({
+            id, invNo, fileName, sourceIn, sourceOut, duration
+        });
+        map.get(archive).allDurations.push(duration);
     });
 
-    archiveData = Array.from(map.values());
-    filteredData = archiveData;
+    archiveData = Array.from(map.values()).map(a => {
+        const totalDuration = sumTimecodes(a.allDurations, 25);
+        const totalFrames = timecodeToFrames(totalDuration, 25);
+        const isStills = totalFrames === 0;
+        return {
+            name: a.name,
+            entries: a.clips.length,
+            clips: a.clips,
+            duration: totalDuration,
+            totalFrames,
+            type: isStills ? "stills" : "video"
+        };
+    });
 
-    buildArchiveFilter();
-    renderTables(filteredData);
+    filteredData = archiveData.slice();
+
+    populateArchiveFilterDropdown();
+    renderArchiveTables(filteredData);
+    updateSummaryPanel(archiveData);
 }
 
 
-/* ---------------------------------------------
-   ARCHIVE FILTER
---------------------------------------------- */
-function buildArchiveFilter() {
+/* =========================
+   FILTERS / SORT
+========================= */
+
+function populateArchiveFilterDropdown() {
     const select = document.getElementById("filterArchive");
-    select.innerHTML = `<option value="all">All archives</option>`;
+    if (!select) return;
 
-    archiveData.forEach(a => {
-        const opt = document.createElement("option");
-        opt.value = a.name;
-        opt.textContent = a.name;
-        select.appendChild(opt);
-    });
+    select.innerHTML = `<option value="all">All archives</option>`;
+    archiveData
+        .map(a => a.name)
+        .sort()
+        .forEach(name => {
+            const opt = document.createElement("option");
+            opt.value = name;
+            opt.textContent = name;
+            select.appendChild(opt);
+        });
 }
 
-
-/* ---------------------------------------------
-   APPLY FILTERS
---------------------------------------------- */
 function applyFilters() {
     const term = document.getElementById("searchInput").value.toLowerCase();
-    const archiveName = document.getElementById("filterArchive").value;
-    const mode = document.getElementById("viewMode").value;
-    const sort = document.getElementById("sortSelect").value;
+    const filterArchive = document.getElementById("filterArchive").value;
+    const viewMode = document.getElementById("viewMode").value;
+    const sortBy = document.getElementById("sortSelect").value;
 
     filteredData = archiveData.filter(a => {
         let okSearch =
             a.name.toLowerCase().includes(term) ||
             a.clips.some(c =>
-                (c.ID || "").toLowerCase().includes(term) ||
-                (c["File Name"] || "").toLowerCase().includes(term)
+                (c.id || "").toLowerCase().includes(term) ||
+                (c.invNo || "").toLowerCase().includes(term) ||
+                (c.fileName || "").toLowerCase().includes(term)
             );
 
-        let okArchive = archiveName === "all" || archiveName === a.name;
+        let okArchive = filterArchive === "all" || a.name === filterArchive;
 
         let okMode = true;
-        if (mode === "video") okMode = !a.name.toLowerCase().includes("still");
-        if (mode === "stills") okMode = a.name.toLowerCase().includes("still");
+        if (viewMode === "video") okMode = a.type === "video";
+        if (viewMode === "stills") okMode = a.type === "stills";
 
         return okSearch && okArchive && okMode;
     });
 
-    renderTables(filteredData);
+    // sort
+    filteredData.sort((a, b) => {
+        switch (sortBy) {
+            case "duration-desc": return b.totalFrames - a.totalFrames;
+            case "duration-asc":  return a.totalFrames - b.totalFrames;
+            case "name-asc":      return a.name.localeCompare(b.name);
+            case "name-desc":     return b.name.localeCompare(a.name);
+            case "clips-desc":    return b.entries - a.entries;
+            case "clips-asc":     return a.entries - b.entries;
+            default:              return 0;
+        }
+    });
+
+    renderArchiveTables(filteredData);
 }
 
-
-/* ---------------------------------------------
-   RESET
---------------------------------------------- */
 function resetFilters() {
     document.getElementById("searchInput").value = "";
     document.getElementById("filterArchive").value = "all";
     document.getElementById("viewMode").value = "all";
     document.getElementById("sortSelect").value = "duration-desc";
-
-    filteredData = archiveData;
-    renderTables(filteredData);
+    filteredData = archiveData.slice();
+    renderArchiveTables(filteredData);
 }
 
 
-/* ---------------------------------------------
-   RENDER ARCHIVE TABLES
---------------------------------------------- */
-function renderTables(data) {
+/* =========================
+   RENDER TABLES
+========================= */
+
+function renderArchiveTables(data) {
     const container = document.getElementById("archiveTables");
+    if (!container) return;
+
     if (!data.length) {
-        container.innerHTML = `<div class="loading-box">No results.</div>`;
+        container.innerHTML = `<div class="loading-box">No archives match your filters.</div>`;
         return;
     }
 
     let html = "";
 
-    data.forEach(a => {
+    data.forEach(archive => {
         html += `
         <div class="archive-section">
-            <div class="archive-title">
-                ${a.name}
-                <span>${a.clips.length} clips</span>
+            <div class="archive-title ${archive.type === "stills" ? "stills" : ""}">
+                <span>${archive.name}</span>
+                <span>${archive.entries} ${archive.type === "stills" ? "stills" : "clips"} • Total: ${archive.duration}</span>
             </div>
-
             <table class="archive-table">
                 <thead>
                     <tr>
                         <th>#</th>
                         <th>ID</th>
                         <th>Inv No</th>
-                        <th>File</th>
+                        <th>File Name</th>
                         <th>Source In</th>
                         <th>Source Out</th>
                         <th>Duration</th>
                     </tr>
                 </thead>
-
                 <tbody>
-                    ${a.clips
-                        .map(
-                            (c, i) => `
-                        <tr>
-                            <td>${i + 1}</td>
-                            <td>${c.ID || ""}</td>
-                            <td>${c["Inv No"] || c.inv_no || ""}</td>
-                            <td>${c["File Name"] || ""}</td>
-                            <td>${c["Source In"] || ""}</td>
-                            <td>${c["Source Out"] || ""}</td>
-                            <td class="duration-cell">${c.Duration || "00:00:00:00"}</td>
-                        </tr>`
-                        )
+                    ${archive.clips
+                        .map((c, i) => `
+                            <tr>
+                                <td>${i + 1}</td>
+                                <td>${c.id || ""}</td>
+                                <td>${c.invNo || ""}</td>
+                                <td>${c.fileName || ""}</td>
+                                <td class="duration-cell">${c.sourceIn || ""}</td>
+                                <td class="duration-cell">${c.sourceOut || ""}</td>
+                                <td class="duration-cell">${c.duration || "00:00:00:00"}</td>
+                            </tr>
+                        `)
                         .join("")}
+                    <tr class="total-row ${archive.type === "stills" ? "stills" : ""}">
+                        <td colspan="6"><strong>TOTAL</strong></td>
+                        <td class="duration-cell"><strong>${archive.duration}</strong></td>
+                    </tr>
                 </tbody>
             </table>
         </div>
@@ -345,21 +448,150 @@ function renderTables(data) {
 }
 
 
-/* ---------------------------------------------
-   COPY AS TABLE
---------------------------------------------- */
+/* =========================
+   SUMMARY PAGE
+========================= */
+
+function updateSummaryPanel(allArchives) {
+    const cards = document.getElementById("summary-cards");
+    const pricing = document.getElementById("pricing-table");
+    const raw = document.getElementById("summary-raw");
+
+    if (!cards || !pricing || !raw) return;
+
+    const videos = allArchives.filter(a => a.type === "video");
+    const stills = allArchives.filter(a => a.type === "stills");
+
+    const videoClips = videos.reduce((s, a) => s + a.entries, 0);
+    const stillsCount = stills.reduce((s, a) => s + a.entries, 0);
+    const totalVideoFrames = videos.reduce((s, a) => s + a.totalFrames, 0);
+    const totalVideoDuration = framesToTimecode(totalVideoFrames, 25);
+
+    cards.innerHTML = `
+        <div class="summary-card">
+            <div class="summary-card-title">Video Clips</div>
+            <div class="summary-card-value">${videoClips}</div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-card-title">Video Archives</div>
+            <div class="summary-card-value">${videos.length}</div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-card-title">Total Video Duration</div>
+            <div class="summary-card-value">${totalVideoDuration}</div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-card-title">Stills / Images</div>
+            <div class="summary-card-value">${stillsCount}</div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-card-title">Stills Archives</div>
+            <div class="summary-card-value">${stills.length}</div>
+        </div>
+    `;
+
+    // проста pricing таблица – можеш да променяш числата
+    const ratePerSecond = 10; // примерно 10 EUR / секунда
+    const totalSeconds = Math.round(totalVideoFrames / 25);
+    const videoPrice = totalSeconds * ratePerSecond;
+    const stillPrice = stillsCount * 5; // примерно 5 EUR / снимка
+
+    pricing.innerHTML = `
+        <table>
+            <thead>
+                <tr>
+                    <th>Type</th>
+                    <th>Quantity</th>
+                    <th>Rate</th>
+                    <th>Estimated Price</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Video footage</td>
+                    <td>${totalVideoDuration} (${totalSeconds} s)</td>
+                    <td>${ratePerSecond} € / sec</td>
+                    <td>${videoPrice.toLocaleString()} €</td>
+                </tr>
+                <tr>
+                    <td>Stills / Images</td>
+                    <td>${stillsCount}</td>
+                    <td>5 € / image</td>
+                    <td>${stillPrice.toLocaleString()} €</td>
+                </tr>
+                <tr class="pricing-total-row">
+                    <td colspan="3">Total estimate</td>
+                    <td>${(videoPrice + stillPrice).toLocaleString()} €</td>
+                </tr>
+            </tbody>
+        </table>
+    `;
+
+    raw.innerHTML = "";
+    const addRow = (label, value) => {
+        const row = document.createElement("div");
+        row.className = "summary-raw-row";
+        row.innerHTML = `
+            <div class="summary-raw-label">${label}</div>
+            <div class="summary-raw-value">${value}</div>
+        `;
+        raw.appendChild(row);
+    };
+
+    addRow("Video Clips", videoClips);
+    addRow("Video Archives", videos.length);
+    addRow("Total Video Duration", totalVideoDuration);
+    addRow("Stills / Images", stillsCount);
+    addRow("Stills Archives", stills.length);
+}
+
+
+/* =========================
+   COPY & EXPORT (SIMPLE)
+========================= */
+
 function copyAsTable() {
-    const html = document.getElementById("archiveTables").innerHTML;
+    const container = document.getElementById("archiveTables");
+    if (!container) return;
 
-    navigator.clipboard.writeText(html.replace(/<[^>]*>/g, ""))
-        .then(() => alert("Copied!"))
-        .catch(() => alert("Copy failed"));
+    const tmp = document.createElement("div");
+    tmp.innerHTML = container.innerHTML;
+    tmp.style.position = "fixed";
+    tmp.style.left = "-9999px";
+    document.body.appendChild(tmp);
+
+    const range = document.createRange();
+    range.selectNodeContents(tmp);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+
+    try {
+        const ok = document.execCommand("copy");
+        alert(ok ? "Table copied – you can paste in Word/Excel/Email." : "Copy failed");
+    } catch (e) {
+        alert("Copy not supported in this browser.");
+    }
+
+    sel.removeAllRanges();
+    document.body.removeChild(tmp);
 }
 
-
-/* ---------------------------------------------
-   EXPORT TO EXCEL
---------------------------------------------- */
 function exportToExcel() {
-    alert("Excel export can be added later. Function placeholder.");
+    alert("Excel export is not implemented in this simplified version. You can copy the table and paste into Excel.");
 }
+
+
+/* =========================
+   DOMContentLoaded – START
+========================= */
+
+document.addEventListener("DOMContentLoaded", () => {
+    // router
+    const last = localStorage.getItem("lastPage") || "home";
+    showPage(last);
+
+    // archives UI + sidebar
+    initArchiveUI();
+    loadSidebarSheets();
+});

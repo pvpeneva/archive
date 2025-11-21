@@ -8,7 +8,7 @@
     <!-- Styles -->
     <link rel="stylesheet" href="style.css">
 
-    <!-- Favicon fix (за да няма 404 за favicon) -->
+    <!-- Favicon fix -->
     <link rel="icon" href="data:;base64,iVBORw0KGgo=">
 </head>
 
@@ -39,6 +39,10 @@
         <section id="page-home" class="page active" style="display:block;">
             <div class="home-container">
                 <h2>Welcome</h2>
+
+                <!-- HEADER INFO (auto from sheets-config) -->
+                <div id="headerInfoHome" class="header-info-wrapper"></div>
+
                 <p>
                     This tool lets you load, organize, filter, and summarize film archive sheets
                     directly from Google Sheets using Apps Script.
@@ -50,7 +54,7 @@
                         <li>Connect to a Google Sheet via the Web App URL</li>
                         <li>Load and browse archive clips or still images</li>
                         <li>Filter, sort, and search through the database</li>
-                        <li>Export or copy results</li>
+                        <li>Export or copy results (including header info)</li>
                         <li>Get pricing + summary information</li>
                     </ul>
                 </div>
@@ -58,8 +62,9 @@
                 <div class="home-box">
                     <h3>Your Sheets</h3>
                     <p>
-                        Sheets listed in <code>sheets-config.json</code> will automatically show
-                        inside the Archive selection sidebar.
+                        Sheets listed in <code>sheets-config.json</code> automatically appear
+                        in the sidebar on the <strong>Archives</strong> page.
+                        Selecting a sheet loads both its database and the header information above.
                     </p>
                 </div>
             </div>
@@ -68,14 +73,12 @@
         <!-- ARCHIVES PAGE -->
         <section id="page-archives" class="page" style="display:none;">
 
-            <!-- Двуколонен layout: sidebar + съдържание -->
             <div class="archives-layout">
-
                 <!-- SIDEBAR WITH PREDEFINED SHEETS -->
                 <aside class="sidebar">
                     <h3 class="sidebar-title">My Sheets</h3>
                     <ul class="sidebar-list" id="sidebarSheets">
-                        <!-- Will be filled automatically from sheets-config.json by script.js -->
+                        <!-- Filled from sheets-config.json by script.js -->
                     </ul>
                 </aside>
 
@@ -84,23 +87,27 @@
                     <h2>Archives</h2>
                     <p>Select an archive sheet from the menu and load your footage database.</p>
 
-                    <!-- Тук script.js инжектира цялата UI за архивите -->
+                    <!-- HEADER INFO ON ARCHIVES PAGE -->
+                    <div id="headerInfoArchives" class="header-info-wrapper"></div>
+
+                    <!-- The Archive UI (connect box, filters, tables) is injected here -->
                     <div id="archives-content">
                         <div class="loading-box">
                             Loading archive system…
                         </div>
                     </div>
                 </div>
-
             </div>
         </section>
 
         <!-- SUMMARY PAGE -->
         <section id="page-summary" class="page" style="display:none;">
             <div class="summary-container">
-
                 <h2>Summary</h2>
                 <p>Overview of your entire archive: stats, totals, pricing, and raw sheet summary.</p>
+
+                <!-- HEADER INFO ALSO SHOWN HERE IF NEEDED -->
+                <div id="headerInfoSummary" class="header-info-wrapper"></div>
 
                 <!-- SUMMARY CARDS -->
                 <h3>Statistics</h3>
@@ -113,14 +120,13 @@
                 <!-- RAW SUMMARY -->
                 <h3>Raw Summary (from Sheet)</h3>
                 <div id="summary-raw" class="summary-raw"></div>
-
             </div>
         </section>
 
     </main>
 
-    <!-- THEME TOGGLE BUTTON (LIGHT / DARK) -->
-    <button id="themeToggle" class="theme-btn">🌓 Theme</button>
+    <!-- THEME TOGGLE BUTTON -->
+    <button id="themeToggle" class="theme-toggle">Dark</button>
 
     <!-- SCRIPTS -->
     <script src="script.js"></script>

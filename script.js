@@ -658,3 +658,10 @@ window.addEventListener("DOMContentLoaded", () => {
     showPage(last);
     initArchivesUI();   // тук вече вкарваме Connect/Filters/таблиците
 });
+window.addEventListener("DOMContentLoaded", () => {
+    const last = localStorage.getItem('lastPage') || 'home';
+    showPage(last);
+
+    initArchivesUI();     // build archive UI
+    loadPredefinedSheets(); // load list of sheets
+});

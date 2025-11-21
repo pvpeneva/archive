@@ -34,74 +34,84 @@
 
     <!-- MAIN WRAPPER -->
     <main class="page-wrapper">
-    <!-- HOME PAGE -->
-    <section id="page-home" class="page active" style="display:block;">
-        <div class="home-container">
-            <h2>Welcome</h2>
-            <p>
-                This tool lets you load, organize, filter, and summarize film archive sheets
-                directly from Google Sheets using Apps Script.
-            </p>
 
-            <div class="home-box">
-                <h3>How It Works</h3>
-                <ul>
-                    <li>Connect to a Google Sheet via the Web App URL</li>
-                    <li>Load and browse archive clips or still images</li>
-                    <li>Filter, sort, and search through the database</li>
-                    <li>Export or copy results</li>
-                    <li>Get pricing + summary information</li>
-                </ul>
-            </div>
-
-            <div class="home-box">
-                <h3>Your Sheets</h3>
+        <!-- HOME PAGE -->
+        <section id="page-home" class="page active" style="display:block;">
+            <div class="home-container">
+                <h2>Welcome</h2>
                 <p>
-                    Sheets listed in <code>sheets-config.json</code> will automatically show
-                    inside the Archive selection sidebar.
+                    This tool lets you load, organize, filter, and summarize film archive sheets
+                    directly from Google Sheets using Apps Script.
                 </p>
-            </div>
-        </div>
-    </section>
 
-    <!-- ARCHIVES PAGE -->
-    <section id="page-archives" class="page" style="display:none;">
-        <div class="archives-page-container">
+                <div class="home-box">
+                    <h3>How It Works</h3>
+                    <ul>
+                        <li>Connect to a Google Sheet via the Web App URL</li>
+                        <li>Load and browse archive clips or still images</li>
+                        <li>Filter, sort, and search through the database</li>
+                        <li>Export or copy results</li>
+                        <li>Get pricing + summary information</li>
+                    </ul>
+                </div>
 
-            <h2>Archives</h2>
-            <p>Select an archive sheet from the menu and load your footage database.</p>
-
-            <!-- This is where the entire Archive System UI will be injected by script.js -->
-            <div id="archives-content">
-                <div class="loading-box">
-                    Loading archive system…
+                <div class="home-box">
+                    <h3>Your Sheets</h3>
+                    <p>
+                        Sheets listed in <code>sheets-config.json</code> will automatically show
+                        inside the Archive selection sidebar.
+                    </p>
                 </div>
             </div>
+        </section>
 
-        </div>
-    </section>
+        <!-- ARCHIVES PAGE -->
+        <section id="page-archives" class="page" style="display:none;">
 
-    <!-- SUMMARY PAGE -->
-    <section id="page-summary" class="page" style="display:none;">
-        <div class="summary-container">
+            <!-- SIDEBAR WITH PREDEFINED SHEETS -->
+            <aside class="sidebar">
+                <h3 class="sidebar-title">My Sheets</h3>
+                <ul class="sidebar-list" id="sidebarSheets">
+                    <!-- Will be filled automatically from sheets-config.json by script.js -->
+                </ul>
+            </aside>
 
-            <h2>Summary</h2>
-            <p>Overview of your entire archive: stats, totals, pricing, and raw sheet summary.</p>
+            <!-- MAIN ARCHIVES CONTENT -->
+            <div class="archives-page-container">
+                <h2>Archives</h2>
+                <p>Select an archive sheet from the menu and load your footage database.</p>
 
-            <!-- SUMMARY CARDS -->
-            <h3>Statistics</h3>
-            <div id="summary-cards" class="summary-cards"></div>
+                <!-- This is where the entire Archive System UI will be injected by script.js -->
+                <div id="archives-content">
+                    <div class="loading-box">
+                        Loading archive system…
+                    </div>
+                </div>
+            </div>
+        </section>
 
-            <!-- PRICING -->
-            <h3>Pricing</h3>
-            <div id="pricing-table" class="pricing-table"></div>
+        <!-- SUMMARY PAGE -->
+        <section id="page-summary" class="page" style="display:none;">
+            <div class="summary-container">
 
-            <!-- RAW SUMMARY -->
-            <h3>Raw Summary (from Sheet)</h3>
-            <div id="summary-raw" class="summary-raw"></div>
+                <h2>Summary</h2>
+                <p>Overview of your entire archive: stats, totals, pricing, and raw sheet summary.</p>
 
-        </div>
-    </section>
+                <!-- SUMMARY CARDS -->
+                <h3>Statistics</h3>
+                <div id="summary-cards" class="summary-cards"></div>
+
+                <!-- PRICING -->
+                <h3>Pricing</h3>
+                <div id="pricing-table" class="pricing-table"></div>
+
+                <!-- RAW SUMMARY -->
+                <h3>Raw Summary (from Sheet)</h3>
+                <div id="summary-raw" class="summary-raw"></div>
+
+            </div>
+        </section>
+
     </main>
 
     <!-- SCRIPTS -->

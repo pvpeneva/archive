@@ -8,7 +8,7 @@
     <!-- Styles -->
     <link rel="stylesheet" href="style.css">
 
-    <!-- Favicon fix -->
+    <!-- Favicon fix (за да няма 404 за favicon) -->
     <link rel="icon" href="data:;base64,iVBORw0KGgo=">
 </head>
 
@@ -68,7 +68,7 @@
         <!-- ARCHIVES PAGE -->
         <section id="page-archives" class="page" style="display:none;">
 
-            <!-- FLEX LAYOUT: SIDEBAR + MAIN CONTENT -->
+            <!-- Двуколонен layout: sidebar + съдържание -->
             <div class="archives-layout">
 
                 <!-- SIDEBAR WITH PREDEFINED SHEETS -->
@@ -84,7 +84,7 @@
                     <h2>Archives</h2>
                     <p>Select an archive sheet from the menu and load your footage database.</p>
 
-                    <!-- This is where the entire Archive System UI will be injected by script.js -->
+                    <!-- Тук script.js инжектира цялата UI за архивите -->
                     <div id="archives-content">
                         <div class="loading-box">
                             Loading archive system…
@@ -119,9 +119,11 @@
 
     </main>
 
+    <!-- THEME TOGGLE BUTTON (LIGHT / DARK) -->
+    <button id="themeToggle" class="theme-btn">🌓 Theme</button>
+
     <!-- SCRIPTS -->
     <script src="script.js"></script>
 
 </body>
 </html>
-<button id="themeToggle" class="theme-btn">🌓 Theme</button>

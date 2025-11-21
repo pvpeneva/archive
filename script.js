@@ -1,40 +1,5 @@
-/* -------------------------------------------
-    PAGE ROUTER – SWITCH BETWEEN 3 PAGES
--------------------------------------------- */
-
-function showPage(page) {
-    console.log("Switching to page:", page);
-
-    // Hide all pages
-    document.querySelectorAll('.page').forEach(p => {
-        p.classList.remove('active');
-        p.style.display = 'none';
-    });
-
-    // Show selected page
-    const target = document.getElementById('page-' + page);
-    if (target) {
-        target.classList.add('active');
-        target.style.display = 'block';
-    }
-
-    // Update active menu link
-    document.querySelectorAll('.nav-links a').forEach(a => a.classList.remove('active'));
-    const activeNav = document.getElementById('nav-' + page);
-    if (activeNav) activeNav.classList.add('active');
-
-    // Save last visited page
-    localStorage.setItem('lastPage', page);
-}
-
-/* Load last page on start */
-window.addEventListener("DOMContentLoaded", () => {
-    const last = localStorage.getItem('lastPage') || 'home';
-    showPage(last);
-});
-
 /*************************************************
- * LIVE ARCHIVE TOOL — FINAL STABLE VERSION
+ * LIVE ARCHIVE TOOL — FINAL CLEAN VERSION
  * Supports these exact sheet columns:
  * ID, inv no, FILE NAME, SOURCE IN, SOURCE OUT,
  * SOURCE DURATION, Link
@@ -42,29 +7,36 @@ window.addEventListener("DOMContentLoaded", () => {
 
 
 /* =================================================
-   PAGE ROUTER
+   PAGE ROUTER — SWITCH BETWEEN PAGES
 ================================================= */
 
 function showPage(page) {
+
+    // Hide all pages
     document.querySelectorAll(".page").forEach(p => {
         p.style.display = "none";
         p.classList.remove("active");
     });
 
+    // Show selected page
     const target = document.getElementById("page-" + page);
     if (target) {
         target.style.display = "block";
         target.classList.add("active");
     }
 
+    // Highlight active menu button
     document.querySelectorAll(".nav-links a").forEach(a => a.classList.remove("active"));
     const nav = document.getElementById("nav-" + page);
     if (nav) nav.classList.add("active");
 
+    // Save last visited page
     localStorage.setItem("lastPage", page);
 }
 
+
 document.addEventListener("DOMContentLoaded", () => {
+
     initArchiveUI();
     loadSidebarSheets();
 
@@ -73,11 +45,13 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 
+
 /* =================================================
-   SIDEBAR: LOAD SHEETS FROM sheets-config.json
+   SIDEBAR — LOAD SHEETS FROM sheets-config.json
 ================================================= */
 
 async function loadSidebarSheets() {
+
     const list = document.getElementById("sidebarSheets");
     if (!list) return;
 
@@ -88,16 +62,19 @@ async function loadSidebarSheets() {
         list.innerHTML = "";
 
         data.sheets.forEach(sheet => {
+
             const li = document.createElement("li");
             li.className = "sidebar-item";
             li.innerHTML = `<strong>${sheet.episode}_${sheet.name}</strong>`;
 
             li.onclick = () => {
+
                 document.querySelectorAll(".sidebar-item")
                     .forEach(i => i.classList.remove("sidebar-active"));
 
                 li.classList.add("sidebar-active");
 
+                // Prefill connect box
                 const input = document.getElementById("sheetUrlInput");
                 input.value = sheet.url;
                 connectedUrl = sheet.url;
@@ -111,16 +88,20 @@ async function loadSidebarSheets() {
 
     } catch (err) {
         console.error("Sidebar load error:", err);
+        list.innerHTML = "<li>Error loading sheets</li>";
     }
 }
 
 
+
 /* =================================================
-   BUILD ARCHIVE PAGE UI
+   ARCHIVE PAGE UI BUILDER
 ================================================= */
 
 function initArchiveUI() {
+
     document.getElementById("archives-content").innerHTML = `
+
         <div class="connect-box">
             <h3>Connect Google Sheet</h3>
 
@@ -138,6 +119,7 @@ function initArchiveUI() {
 
         <div id="filtersPanel" style="display:none; margin-top:30px;">
             <div class="filters-wrapper">
+
                 <div class="filter-item">
                     <label>Search</label>
                     <input id="searchInput" type="text" placeholder="Search …">
@@ -161,6 +143,7 @@ function initArchiveUI() {
                         <option value="clips-asc">Fewest Clips</option>
                     </select>
                 </div>
+
             </div>
 
             <div class="archive-buttons">
@@ -183,6 +166,7 @@ function initArchiveUI() {
 }
 
 
+
 /* =================================================
    CONNECTION + DATA LOADING
 ================================================= */
@@ -191,25 +175,27 @@ let connectedUrl = "";
 let archiveData = [];
 let filteredData = [];
 
-
 function testConnection() {
     const url = document.getElementById("sheetUrlInput").value;
     if (!url) return alert("Paste your /exec URL first.");
-
     window.open(url, "_blank");
 }
 
 function connectToSheet() {
+
     const url = document.getElementById("sheetUrlInput").value.trim();
     if (!url || !url.includes("/exec")) {
         alert("Invalid Web App URL.");
         return;
     }
+
     connectedUrl = url;
     document.getElementById("connectStatus").textContent = "Status: Connected (Click Refresh)";
 }
 
+
 async function refreshData() {
+
     if (!connectedUrl) return alert("Connect first.");
 
     document.getElementById("connectStatus").textContent = "Loading…";
@@ -217,6 +203,7 @@ async function refreshData() {
         `<div class="loading-box">Loading from Google Apps Script…</div>`;
 
     try {
+
         const url = connectedUrl + "?_=" + Date.now();
         const resp = await fetch(url);
         const rows = await resp.json();
@@ -224,25 +211,26 @@ async function refreshData() {
         processRows(rows);
 
         document.getElementById("filtersPanel").style.display = "block";
-        document.getElementById("connectStatus").textContent =
-            "Status: Data Loaded";
+        document.getElementById("connectStatus").textContent = "Status: Data Loaded";
 
     } catch (err) {
         console.error(err);
-        document.getElementById("connectStatus").textContent =
-            "Error loading data";
+        document.getElementById("connectStatus").textContent = "Error loading data";
     }
 }
 
 
+
 /* =================================================
-   PROCESS DATA
+   PROCESS + MAP SHEET DATA
 ================================================= */
 
 function processRows(rows) {
+
     const map = new Map();
 
     rows.forEach(r => {
+
         const archive = (r.Archive || r.archive || "").trim();
         if (!archive) return;
 
@@ -254,7 +242,8 @@ function processRows(rows) {
         const dur = String(r["SOURCE DURATION"] || r["Duration"] || "").trim();
         const link = String(r["Link"] || r["link"] || "").trim();
 
-        if (!map.has(archive)) map.set(archive, { name: archive, clips: [], durations: [] });
+        if (!map.has(archive))
+            map.set(archive, { name: archive, clips: [], durations: [] });
 
         map.get(archive).clips.push({ id, inv, file, sin, sout, dur, link });
         map.get(archive).durations.push(dur);
@@ -278,13 +267,16 @@ function processRows(rows) {
 }
 
 
+
 /* =================================================
    FILTERS + SORT
 ================================================= */
 
 function buildArchiveDropdown() {
+
     const sel = document.getElementById("filterArchive");
     sel.innerHTML = `<option value="all">All archives</option>`;
+
     archiveData.forEach(a => {
         const o = document.createElement("option");
         o.value = a.name;
@@ -293,13 +285,17 @@ function buildArchiveDropdown() {
     });
 }
 
+
 function applyFilters() {
+
     const term = document.getElementById("searchInput").value.toLowerCase();
     const arc = document.getElementById("filterArchive").value;
     const sort = document.getElementById("sortSelect").value;
 
     filteredData = archiveData.filter(a => {
+
         const matchArchive = arc === "all" || a.name === arc;
+
         const matchSearch =
             a.name.toLowerCase().includes(term) ||
             a.clips.some(c =>
@@ -307,10 +303,11 @@ function applyFilters() {
                 c.inv.toLowerCase().includes(term) ||
                 c.file.toLowerCase().includes(term)
             );
+
         return matchArchive && matchSearch;
     });
 
-    // sorting
+    // Sorting
     filteredData.sort((a, b) => {
         switch (sort) {
             case "duration-desc": return b.totalFrames - a.totalFrames;
@@ -326,13 +323,16 @@ function applyFilters() {
     renderTables(filteredData);
 }
 
+
 function resetFilters() {
     document.getElementById("searchInput").value = "";
     document.getElementById("filterArchive").value = "all";
     document.getElementById("sortSelect").value = "duration-desc";
+
     filteredData = [...archiveData];
     renderTables(filteredData);
 }
+
 
 
 /* =================================================
@@ -341,7 +341,7 @@ function resetFilters() {
 
 function tcToFrames(tc, fps = 25) {
     if (!tc) return 0;
-    let [h, m, s, f] = tc.split(":").map(n => parseInt(n) || 0);
+    const [h, m, s, f] = tc.split(":").map(n => parseInt(n) || 0);
     return h * 3600 * fps + m * 60 * fps + s * fps + f;
 }
 
@@ -361,11 +361,13 @@ function sumDurations(list) {
 }
 
 
+
 /* =================================================
    RENDER TABLES
 ================================================= */
 
 function renderTables(data) {
+
     const container = document.getElementById("archiveTables");
 
     if (!data.length) {
@@ -376,8 +378,10 @@ function renderTables(data) {
     let html = "";
 
     data.forEach(a => {
+
         html += `
         <div class="archive-section">
+
             <div class="archive-title">
                 ${a.name}
                 <span>${a.entries} clips • Total: ${a.totalDuration}</span>
@@ -403,9 +407,7 @@ function renderTables(data) {
                             <td>${i + 1}</td>
                             <td>${c.id}</td>
                             <td>${c.inv}</td>
-                            <td style="max-width:350px; white-space:normal;">
-                                ${c.file}
-                            </td>
+                            <td style="max-width:350px; white-space:normal;">${c.file}</td>
                             <td>${c.sin}</td>
                             <td>${c.sout}</td>
                             <td class="duration-cell">${c.dur}</td>
@@ -419,7 +421,9 @@ function renderTables(data) {
                         <td></td>
                     </tr>
                 </tbody>
+
             </table>
+
         </div>
         `;
     });
@@ -428,54 +432,13 @@ function renderTables(data) {
 }
 
 
+
 /* =================================================
-   COPY TABLE
+   COPY TABLE CONTENT
 ================================================= */
 
 function copyAsTable() {
     const text = document.getElementById("archiveTables").innerText;
     navigator.clipboard.writeText(text);
     alert("Copied!");
-}
-/* ---------------------------------------
-   SIDEBAR — LOAD SHEETS FROM CONFIG
-----------------------------------------*/
-async function loadSheetSidebar() {
-    const list = document.getElementById("sheetList");
-    list.innerHTML = "<li>Loading…</li>";
-
-    try {
-        const res = await fetch("sheets-config.json");
-        const config = await res.json();
-
-        list.innerHTML = "";
-
-        config.sheets.forEach(sheet => {
-            const li = document.createElement("li");
-            li.textContent = `${sheet.episode}_${sheet.name}`;
-            li.onclick = () => {
-                document.querySelectorAll(".sheet-list li").forEach(x => x.classList.remove("active"));
-                li.classList.add("active");
-                loadSheetDirect(sheet);  // loads the table
-            };
-            list.appendChild(li);
-        });
-
-    } catch (e) {
-        list.innerHTML = "<li>Error loading sheets</li>";
-    }
-}
-
-/* ---------------------------------------
-   SIDEBAR MOBILE TOGGLE
-----------------------------------------*/
-document.getElementById("sidebarToggle").onclick = () => {
-    document.getElementById("sidebar").classList.toggle("open");
-};
-
-/* ---------------------------------------
-   RUN ON START
-----------------------------------------*/
-loadSheetSidebar();
-   }
 }

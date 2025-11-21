@@ -1,0 +1,64 @@
+{
+  "sheets": [
+    {
+      "id": "sheet_01",
+      "episode": "01",
+      "name": "DUCKWITZ EDL",
+      "url": "https://script.google.com/macros/s/AKfycbx_-NQifi7977Iw3uLs7wLNCPfYxs3U1O8AIo2J2d6jvlywYq96tP_9brX0clDMUDqT5A/exec",
+      "sheetLink": "https://docs.google.com/spreadsheets/d/1JuPed2Zle8vnUqd6QCD4pONZihg_jt_wGCK1HsfJxiY/edit?gid=2109456950#gid=2109456950",
+      "production": "Michael W. King Productions, LLC., USA",
+      "project": "The Rescuers",
+      "researcher": "Frank Drauschke",
+      "contact": "research@drauschke.de",
+      "addedAt": ""
+    },
+    {
+      "id": "sheet_02",
+      "episode": "02",
+      "name": "ALICE EDL",
+      "url": "https://script.google.com/macros/s/AKfycbxBjGPDnX9ezSKPkx2LSAn2VuJurQCrMNdE9OPRKN0oOI_yPC-aNHvyNOlpx0B2Tf4bfw/exec",
+      "sheetLink": "",
+      "production": "Michael W. King Productions, LLC., USA",
+      "project": "The Rescuers",
+      "researcher": "Frank Drauschke",
+      "contact": "research@drauschke.de",
+      "addedAt": ""
+    },
+    {
+      "id": "sheet_03",
+      "episode": "03",
+      "name": "LAW 1 EDL",
+      "url": "https://script.google.com/macros/s/AKfycbyL4FmAZPFdo3wlrnXxN_Cv6Uahr8_SzO789l8Y9gZGxggIPgit3tzH8YXlY9GP4rqBLQ/exec",
+      "sheetLink": "",
+      "production": "Michael W. King Productions, LLC., USA",
+      "project": "The Rescuers",
+      "researcher": "Frank Drauschke",
+      "contact": "research@drauschke.de",
+      "addedAt": ""
+    },
+    {
+      "id": "sheet_04",
+      "episode": "04",
+      "name": "LAW 2 EDL",
+      "url": "https://script.google.com/macros/s/AKfycbzHPk5e_veiHix86qVQ2xmc3zOzrxnWkR5mu656zhkAJZeUBz-WHhhflJWoINzfB9h-/exec",
+      "sheetLink": "",
+      "production": "Michael W. King Productions, LLC., USA",
+      "project": "The Rescuers",
+      "researcher": "Frank Drauschke",
+      "contact": "research@drauschke.de",
+      "addedAt": ""
+    },
+    {
+      "id": "sheet_05",
+      "episode": "05",
+      "name": "FRY/BING EDL",
+      "url": "https://script.google.com/macros/s/AKfycbwHinKRPqclh-H5zL-50gmkqE0Yl9XU7W259-S8OJl8PwGBc2ADv3SCzsIl72PCsKpunw/exec",
+      "sheetLink": "",
+      "production": "Michael W. King Productions, LLC., USA",
+      "project": "The Rescuers",
+      "researcher": "Frank Drauschke",
+      "contact": "research@drauschke.de",
+      "addedAt": ""
+    }
+  ]
+}

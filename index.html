@@ -5,78 +5,107 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Live Archive Tool</title>
 
-    <!-- CSS ще го поставиш в Част 2 -->
+    <!-- Styles -->
     <link rel="stylesheet" href="style.css">
+
+    <!-- Favicon fix -->
+    <link rel="icon" href="data:;base64,iVBORw0KGgo=">
 </head>
 
 <body>
 
-<!-- 🔵 NAVIGATION -->
-<nav class="nav">
-    <div class="nav-logo">Live Archive Tool</div>
-    <div class="nav-links">
-        <a onclick="showPage('home')" id="nav-home">Home</a>
-        <a onclick="showPage('archives')" id="nav-archives">Archives</a>
-        <a onclick="showPage('summary')" id="nav-summary">Summary</a>
-    </div>
-</nav>
-
-<!-- 🟦 PAGE 1: HOME -->
-<section id="page-home" class="page">
-    <div class="home-container">
-        <h1>Welcome to the Live Archive Tool</h1>
-        <p>Your professional system for managing footage archives, stills, metadata and summary reports.</p>
-
-        <div class="home-buttons">
-            <button onclick="showPage('archives')" class="btn-main">Go to Archives</button>
-            <button onclick="showPage('summary')" class="btn-secondary">View Summary</button>
+    <!-- NAVIGATION -->
+    <nav class="nav">
+        <div class="nav-left">
+            <div class="logo-title">
+                <span class="logo-main">Live Archive</span>
+                <span class="logo-sub">Tool</span>
+            </div>
         </div>
 
-        <div class="home-info">
-            <h3>What this tool does:</h3>
-            <ul>
-                <li>✔ Load archive data directly from Google Sheets</li>
-                <li>✔ View & filter video clips and still images</li>
-                <li>✔ Auto-generate summary and pricing reports</li>
-                <li>✔ Copy & export data (Excel / Word / Print)</li>
-            </ul>
+        <div class="nav-right">
+            <div class="nav-links">
+                <a id="nav-home" href="#" onclick="showPage('home')">Home</a>
+                <a id="nav-archives" href="#" onclick="showPage('archives')">Archives</a>
+                <a id="nav-summary" href="#" onclick="showPage('summary')">Summary</a>
+            </div>
         </div>
-    </div>
-</section>
+    </nav>
 
-<!-- 🟧 PAGE 2: ARCHIVES -->
-<section id="page-archives" class="page">
-    <div class="archives-page-container">
+    <!-- MAIN WRAPPER -->
+    <main class="page-wrapper">
+    <!-- HOME PAGE -->
+    <section id="page-home" class="page active" style="display:block;">
+        <div class="home-container">
+            <h2>Welcome</h2>
+            <p>
+                This tool lets you load, organize, filter, and summarize film archive sheets
+                directly from Google Sheets using Apps Script.
+            </p>
 
-        <h2>Archives</h2>
-        <p>Select an archive sheet from the menu and load your footage database.</p>
+            <div class="home-box">
+                <h3>How It Works</h3>
+                <ul>
+                    <li>Connect to a Google Sheet via the Web App URL</li>
+                    <li>Load and browse archive clips or still images</li>
+                    <li>Filter, sort, and search through the database</li>
+                    <li>Export or copy results</li>
+                    <li>Get pricing + summary information</li>
+                </ul>
+            </div>
 
-        <!-- PLACEHOLDER – реалните таблици ще дойдат в Части 4 и 5 -->
-        <div id="archives-content" class="archives-content">
-            <p>Loading archive system…</p>
+            <div class="home-box">
+                <h3>Your Sheets</h3>
+                <p>
+                    Sheets listed in <code>sheets-config.json</code> will automatically show
+                    inside the Archive selection sidebar.
+                </p>
+            </div>
         </div>
-    </div>
-</section>
+    </section>
 
-<!-- 🟩 PAGE 3: SUMMARY -->
-<section id="page-summary" class="page">
-    <div class="summary-container">
-        <h2>Summary & Pricing</h2>
+    <!-- ARCHIVES PAGE -->
+    <section id="page-archives" class="page" style="display:none;">
+        <div class="archives-page-container">
 
-        <div id="summary-cards" class="summary-cards">
-            <!-- Карти със статистики ще се добавят динамично -->
+            <h2>Archives</h2>
+            <p>Select an archive sheet from the menu and load your footage database.</p>
+
+            <!-- This is where the entire Archive System UI will be injected by script.js -->
+            <div id="archives-content">
+                <div class="loading-box">
+                    Loading archive system…
+                </div>
+            </div>
+
         </div>
+    </section>
 
-        <h3>Pricing Table</h3>
-        <div id="pricing-table" class="pricing-table"></div>
+    <!-- SUMMARY PAGE -->
+    <section id="page-summary" class="page" style="display:none;">
+        <div class="summary-container">
 
-        <h3>Raw Summary Data (from sheet)</h3>
-        <div id="summary-raw" class="summary-raw"></div>
-    </div>
-</section>
+            <h2>Summary</h2>
+            <p>Overview of your entire archive: stats, totals, pricing, and raw sheet summary.</p>
 
-<!-- JS файловете ще ги сложим в Части 3–6 -->
-<script src="script.js"></script>
+            <!-- SUMMARY CARDS -->
+            <h3>Statistics</h3>
+            <div id="summary-cards" class="summary-cards"></div>
+
+            <!-- PRICING -->
+            <h3>Pricing</h3>
+            <div id="pricing-table" class="pricing-table"></div>
+
+            <!-- RAW SUMMARY -->
+            <h3>Raw Summary (from Sheet)</h3>
+            <div id="summary-raw" class="summary-raw"></div>
+
+        </div>
+    </section>
+    </main>
+
+    <!-- SCRIPTS -->
+    <script src="script.js"></script>
 
 </body>
 </html>

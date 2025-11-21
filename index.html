@@ -68,25 +68,30 @@
         <!-- ARCHIVES PAGE -->
         <section id="page-archives" class="page" style="display:none;">
 
-            <!-- SIDEBAR WITH PREDEFINED SHEETS -->
-            <aside class="sidebar">
-                <h3 class="sidebar-title">My Sheets</h3>
-                <ul class="sidebar-list" id="sidebarSheets">
-                    <!-- Will be filled automatically from sheets-config.json by script.js -->
-                </ul>
-            </aside>
+            <!-- FLEX LAYOUT: SIDEBAR + MAIN CONTENT -->
+            <div class="archives-layout">
 
-            <!-- MAIN ARCHIVES CONTENT -->
-            <div class="archives-page-container">
-                <h2>Archives</h2>
-                <p>Select an archive sheet from the menu and load your footage database.</p>
+                <!-- SIDEBAR WITH PREDEFINED SHEETS -->
+                <aside class="sidebar">
+                    <h3 class="sidebar-title">My Sheets</h3>
+                    <ul class="sidebar-list" id="sidebarSheets">
+                        <!-- Will be filled automatically from sheets-config.json by script.js -->
+                    </ul>
+                </aside>
 
-                <!-- This is where the entire Archive System UI will be injected by script.js -->
-                <div id="archives-content">
-                    <div class="loading-box">
-                        Loading archive system…
+                <!-- MAIN ARCHIVES CONTENT -->
+                <div class="archives-page-container">
+                    <h2>Archives</h2>
+                    <p>Select an archive sheet from the menu and load your footage database.</p>
+
+                    <!-- This is where the entire Archive System UI will be injected by script.js -->
+                    <div id="archives-content">
+                        <div class="loading-box">
+                            Loading archive system…
+                        </div>
                     </div>
                 </div>
+
             </div>
         </section>
 

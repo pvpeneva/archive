@@ -189,7 +189,6 @@ async function loadSidebarSheets() {
                 onSelectSheetFromSidebar(sheet, li, true);
             }
         });
-
     } catch (err) {
         console.error("Error loading sheets-config.json", err);
         list.innerHTML = "<li class='sidebar-item'>Error loading sheets</li>";
@@ -356,7 +355,6 @@ async function refreshData() {
         if (filtersPanel) filtersPanel.style.display = "block";
 
         if (statusEl) statusEl.textContent = "Status: Data Loaded";
-
     } catch (err) {
         console.error(err);
         if (statusEl) statusEl.textContent = "Error while loading data";
@@ -368,8 +366,16 @@ async function refreshData() {
 }
 
 /*************************************************
- * PROCESS DATA (ARCHIVES)
+ * PROCESS DATA (ARCHIVES) + NUMERIC ID SORT
  *************************************************/
+
+// numeric helper – взима число от ID (или NaN)
+function parseIdNumber(id) {
+    if (id === null || id === undefined) return NaN;
+    const m = id.toString().match(/\d+/);
+    return m ? parseInt(m[0], 10) : NaN;
+}
+
 function processRows(rows) {
     const map = new Map();
 
@@ -394,6 +400,16 @@ function processRows(rows) {
     });
 
     archiveData = Array.from(map.values()).map(a => {
+        // 🔥 АВТОМАТИЧЕН NUMERIC SORT ПО ID (ASC)
+        a.clips.sort((c1, c2) => {
+            const n1 = parseIdNumber(c1.id);
+            const n2 = parseIdNumber(c2.id);
+            if (isNaN(n1) && isNaN(n2)) return (c1.id || "").localeCompare(c2.id || "");
+            if (isNaN(n1)) return 1;
+            if (isNaN(n2)) return -1;
+            return n1 - n2; // ascending
+        });
+
         const total = sumDurations(a.durations);
         return {
             name: a.name,
@@ -510,7 +526,7 @@ function renderTables(data) {
     if (!container) return;
 
     if (!data || !data.length) {
-        container.innerHTML = `<div class="loading-box">No archives match your filters.</div>`;
+    container.innerHTML = `<div class="loading-box">No archives match your filters.</div>`;
         return;
     }
 
@@ -523,17 +539,18 @@ function renderTables(data) {
                 <span>${a.name}</span>
                 <span>${a.entries} clips • Total: ${a.totalDuration}</span>
             </div>
-            <table class="archive-table">
+            <table class="archive-table" border="1" cellspacing="0" cellpadding="6"
+                   style="border-collapse:collapse;table-layout:fixed;width:100%;font-family:Arial,Helvetica,sans-serif;font-size:13px;">
                 <thead>
                     <tr>
-                        <th>#</th>
-                        <th>ID</th>
-                        <th>Inv No</th>
-                        <th>File Name</th>
-                        <th>Source In</th>
-                        <th>Source Out</th>
-                        <th>Duration</th>
-                        <th>Link</th>
+                        <th style="width:40px;">#</th>
+                        <th style="width:70px;">ID</th>
+                        <th style="width:80px;">Inv No</th>
+                        <th style="width:350px;">File Name</th>
+                        <th style="width:110px;">Source In</th>
+                        <th style="width:110px;">Source Out</th>
+                        <th style="width:110px;">Duration</th>
+                        <th style="width:80px;">Link</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -542,7 +559,7 @@ function renderTables(data) {
                             <td>${i + 1}</td>
                             <td>${c.id || ""}</td>
                             <td>${c.inv || ""}</td>
-                            <td style="max-width:380px;white-space:normal;">${c.file || ""}</td>
+                            <td style="white-space:normal;word-break:break-word;">${c.file || ""}</td>
                             <td>${c.sin || ""}</td>
                             <td>${c.sout || ""}</td>
                             <td class="duration-cell">${c.dur || ""}</td>
@@ -565,6 +582,7 @@ function renderTables(data) {
 
 /*************************************************
  * GENERIC COPY AS HTML (header + tables)
+ * Копира реални <table> структури – Gmail / Outlook friendly
  *************************************************/
 async function copyContainerAsHtml(headerId, mainId) {
     const mainEl = document.getElementById(mainId);
@@ -575,16 +593,22 @@ async function copyContainerAsHtml(headerId, mainId) {
 
     const headerEl = document.getElementById(headerId);
 
-    // Чист HTML с <table>, без <html><body> wrappers
+    // добавяме border/width/стил към ВСИЧКИ таблици, за да изглеждат добре в пощи
+    let bodyHtml = mainEl.innerHTML.replace(
+        /<table([^>]*)>/gi,
+        '<table$1 border="1" cellspacing="0" cellpadding="6" style="border-collapse:collapse;table-layout:fixed;width:100%;font-family:Arial,Helvetica,sans-serif;font-size:13px;">'
+    );
+
     const html = `
-        <table border="1" cellspacing="0" cellpadding="6" style="border-collapse:collapse;font-family:Arial,Helvetica,sans-serif;font-size:13px;">
+        <table border="1" cellspacing="0" cellpadding="6"
+               style="border-collapse:collapse;font-family:Arial,Helvetica,sans-serif;font-size:13px;width:100%;margin-bottom:10px;">
             <tr>
                 <td>
                     ${headerEl ? headerEl.innerHTML : ""}
                 </td>
             </tr>
         </table>
-        ${mainEl.innerHTML}
+        ${bodyHtml}
     `;
 
     const plainText = stripHtml(html);
@@ -603,7 +627,7 @@ async function copyContainerAsHtml(headerId, mainId) {
         }
     }
 
-    // fallback – текст
+    // fallback – само текст
     const ta = document.createElement("textarea");
     ta.value = plainText;
     ta.style.position = "fixed";
@@ -725,7 +749,6 @@ async function loadSummaryData() {
 
         renderSummaryForEpisode(currentSummaryEpisode);
         renderRawSummary();
-
     } catch (err) {
         console.error(err);
         if (statsContainer) {
@@ -793,14 +816,15 @@ function renderSummaryForEpisode(epKey) {
                 <span>${cfg.label} – Statistics</span>
                 <span>${rows.length} archives</span>
             </div>
-            <table class="archive-table">
+            <table class="archive-table" border="1" cellspacing="0" cellpadding="6"
+                   style="border-collapse:collapse;table-layout:fixed;width:100%;font-family:Arial,Helvetica,sans-serif;font-size:13px;">
                 <thead>
                     <tr>
-                        <th>#</th>
+                        <th style="width:40px;">#</th>
                         <th>Archive Name</th>
-                        <th>Stills</th>
-                        <th>Clips</th>
-                        <th>Total TC</th>
+                        <th style="width:90px;">Stills</th>
+                        <th style="width:90px;">Clips</th>
+                        <th style="width:120px;">Total TC</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -824,10 +848,11 @@ function renderPricingTable(totalStills) {
     if (!container) return;
 
     container.innerHTML = `
-        <table>
+        <table border="1" cellspacing="0" cellpadding="6"
+               style="border-collapse:collapse;table-layout:fixed;width:100%;font-family:Arial,Helvetica,sans-serif;font-size:13px;">
             <tbody>
                 <tr>
-                    <th>Metric</th>
+                    <th style="width:60%;">Metric</th>
                     <th>Value</th>
                 </tr>
                 <tr>
@@ -925,6 +950,3 @@ document.addEventListener("DOMContentLoaded", () => {
 
     initSummaryPage();
 });
-
-// за всеки случай – expose в window, ако имаш inline onclick="showPage('home')"
-window.showPage = showPage;

@@ -104,15 +104,15 @@
         <section id="page-summary" class="page" style="display:none;">
             <div class="summary-container">
                 <h2>Summary</h2>
-                <p>Overview of your entire archive: per-episode statistics, totals and pricing.</p>
+                <p>Overview of your entire archive: stats, totals, pricing, and raw sheet summary.</p>
 
-                <!-- HEADER INFO ALSO SHOWN HERE -->
+                <!-- HEADER INFO -->
                 <div id="headerInfoSummary" class="header-info-wrapper"></div>
 
-                <!-- EPISODE SELECT + ACTIONS -->
-                <div class="summary-controls">
-                    <div class="summary-episode-select">
-                        <label for="summaryEpisodeSelect">Select Episode</label>
+                <!-- TOP BAR: EPISODE + BUTTONS -->
+                <div class="summary-top-bar">
+                    <div class="summary-episode">
+                        <label for="summaryEpisodeSelect">Select episode</label>
                         <select id="summaryEpisodeSelect">
                             <option value="duckwitz">Duckwitz</option>
                             <option value="alice">Alice</option>
@@ -121,13 +121,18 @@
                             <option value="frybing">Fry/Bing</option>
                         </select>
                     </div>
+
                     <div class="summary-actions">
-                        <button id="btnSummaryCopy" class="archive-btn success">Copy</button>
-                        <button id="btnSummaryExcel" class="archive-btn primary">Download Excel</button>
+                        <button id="btnSummaryCopy" class="archive-btn success">
+                            Copy header + tables
+                        </button>
+                        <button id="btnSummaryExcel" class="archive-btn secondary">
+                            Download Excel
+                        </button>
                     </div>
                 </div>
 
-                <!-- ВСИЧКО, КОЕТО ЩЕ КОПИРАМЕ / ЕКСПОРТИРАМЕ -->
+                <!-- MAIN EXPORT WRAPPER (това се копира и изнася в Excel) -->
                 <div id="summary-main-export">
                     <!-- STATISTICS TABLE -->
                     <h3>Statistics</h3>
@@ -138,7 +143,7 @@
                     <div id="pricing-table" class="pricing-table"></div>
                 </div>
 
-                <!-- RAW VIEW -->
+                <!-- RAW SUMMARY VIEW -->
                 <h3>Raw Summary (from Sheet)</h3>
                 <div id="summary-raw" class="summary-raw"></div>
             </div>
@@ -147,11 +152,14 @@
     </main>
 
     <!-- THEME TOGGLE BUTTON -->
-    <button id="themeToggle" class="theme-toggle">Dark</button>
+    <button id="themeToggle" class="theme-btn">Dark</button>
 
-    <!-- SCRIPTS -->
-    <!-- XLSX за Excel export -->
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- XLSX LIBRARY FOR EXCEL EXPORT -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"
+            integrity="sha512-4G3pXYtEkb1C9CFWQfHhnY0Ff3q2tFGgF7qd2p2kSYJwZ6a8q2d+kzD0jkGDJQGy/pLNoPLKQfwr+1rVYhYkw=="
+            crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+    <!-- MAIN SCRIPT -->
     <script src="script.js"></script>
 
 </body>

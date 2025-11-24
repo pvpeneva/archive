@@ -66,6 +66,55 @@ const DEFAULT_META = {
     episodeLabel: ""
 };
 
+// SUMMARY WEBAPP (от теб)
+const SUMMARY_WEBAPP_URL =
+    "https://script.google.com/macros/s/AKfycbyXaGpw4aVA_3fh8_GBrih9_Kj6loNHQ7dKKDGnIA83E2U1IfvRADgLWT8i_GKSA8TeAw/exec";
+
+// SUMMARY CONFIG – колони в Summary таба
+const SUMMARY_ARCHIVE_COL = "Archive / Librarie";
+
+const SUMMARY_EPISODES = {
+    duckwitz: {
+        key: "duckwitz",
+        label: "Duckwitz",
+        stillsCol: "01_Duckwitz_St",
+        clipsCol: "01_D_clips",
+        tcCol: "01_Duckwitz_TC"
+    },
+    alice: {
+        key: "alice",
+        label: "Alice",
+        stillsCol: "02_Alice_St",
+        clipsCol: "02_Alice_clips",
+        tcCol: "02_Alice_TC"
+    },
+    law1: {
+        key: "law1",
+        label: "LAW 1",
+        stillsCol: "03_LAW1_St",
+        clipsCol: "03_LAW1_clips",
+        tcCol: "03_LAW1_TC"
+    },
+    law2: {
+        key: "law2",
+        label: "LAW 2",
+        stillsCol: "04_LAW2_St",
+        clipsCol: "04_LAW2_clips",
+        tcCol: "04_LAW2_TC"
+    },
+    frybing: {
+        key: "frybing",
+        label: "Fry/Bing",
+        stillsCol: "05_FRY/BING EDL_St",
+        clipsCol: "05_FRY/BING EDL_clips",
+        tcCol: "05_FRY/BING EDL_TC"
+    }
+};
+
+let summaryRows = [];
+let summaryLoaded = false;
+let currentSummaryEpisode = "duckwitz";
+
 /*************************************************
  * HEADER RENDERING
  *************************************************/
@@ -131,7 +180,7 @@ async function loadSidebarSheets() {
         allSheetsConfig.forEach((sheet, index) => {
             const li = document.createElement("li");
             li.className = "sidebar-item";
-            li.textContent = (sheet.episode ? sheet.episode + "_": "") + (sheet.name || "");
+            li.textContent = (sheet.episode ? sheet.episode + "_" : "") + (sheet.name || "");
             li.addEventListener("click", () => onSelectSheetFromSidebar(sheet, li));
             list.appendChild(li);
 
@@ -227,6 +276,7 @@ function initArchiveUI() {
                 <button class="archive-btn primary" id="btnApply">Apply</button>
                 <button class="archive-btn secondary" id="btnReset">Reset</button>
                 <button class="archive-btn success" id="btnCopy">Copy</button>
+                <button class="archive-btn secondary" id="btnDownloadExcel">Download Excel</button>
             </div>
         </div>
 
@@ -240,11 +290,13 @@ function initArchiveUI() {
 
     document.getElementById("btnApply").onclick = applyFilters;
     document.getElementById("btnReset").onclick = resetFilters;
-    document.getElementById("btnCopy").onclick = copyAsTable;
+    document.getElementById("btnCopy").onclick = () =>
+        copyContainerAsHtml("headerInfoArchives", "archiveTables");
+    document.getElementById("btnDownloadExcel").onclick = downloadArchiveExcel;
 }
 
 /*************************************************
- * CONNECTION + DATA LOADING
+ * CONNECTION + DATA LOADING (ARCHIVES)
  *************************************************/
 function testConnection() {
     const input = document.getElementById("sheetUrlInput");
@@ -316,7 +368,7 @@ async function refreshData() {
 }
 
 /*************************************************
- * PROCESS DATA
+ * PROCESS DATA (ARCHIVES)
  *************************************************/
 function processRows(rows) {
     const map = new Map();
@@ -358,7 +410,7 @@ function processRows(rows) {
 }
 
 /*************************************************
- * FILTERS + SORT
+ * FILTERS + SORT (ARCHIVES)
  *************************************************/
 function buildArchiveDropdown() {
     const sel = document.getElementById("filterArchive");
@@ -427,7 +479,7 @@ function resetFilters() {
  *************************************************/
 function tcToFrames(tc, fps = 25) {
     if (!tc) return 0;
-    const parts = tc.split(":").map(n => parseInt(n, 10) || 0);
+    const parts = tc.toString().split(":").map(n => parseInt(n, 10) || 0);
     const h = parts[0] || 0;
     const m = parts[1] || 0;
     const s = parts[2] || 0;
@@ -451,7 +503,7 @@ function sumDurations(list) {
 }
 
 /*************************************************
- * RENDER TABLES
+ * RENDER TABLES (ARCHIVES)
  *************************************************/
 function renderTables(data) {
     const container = document.getElementById("archiveTables");
@@ -512,68 +564,175 @@ function renderTables(data) {
 }
 
 /*************************************************
- * COPY TABLE + HEADER
+ * GENERIC COPY AS HTML (header + tables)
  *************************************************/
-function copyAsTable() {
-    const container = document.getElementById("archiveTables");
-    if (!container || !container.innerText.trim()) {
+async function copyContainerAsHtml(headerId, mainId) {
+    const mainEl = document.getElementById(mainId);
+    if (!mainEl || !mainEl.innerHTML.trim()) {
         alert("No data to copy yet.");
         return;
     }
 
-    const meta = Object.assign({}, DEFAULT_META, currentSheetMeta || {});
-    const episodeLine = meta.episodeLabel ? `Episode: ${meta.episodeLabel}\n` : "";
+    const headerEl = document.getElementById(headerId);
 
-    const headerText =
-        `Production company: ${meta.production}\n` +
-        `Film project: ${meta.project}\n` +
-        episodeLine +
-        `Researcher: ${meta.researcher}\n` +
-        `Contact: ${meta.contact}\n`;
+    const html = `
+        <html>
+        <body>
+            ${headerEl ? headerEl.innerHTML : ""}
+            ${mainEl.innerHTML}
+        </body>
+        </html>
+    `;
 
-    const tableText = container.innerText;
-    const finalText = headerText + "\n" + tableText;
+    const plainText = stripHtml(html);
 
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(finalText)
-            .then(() => alert("Header + table copied to clipboard."))
-            .catch(() => fallbackCopy(finalText));
-    } else {
-        fallbackCopy(finalText);
+    if (navigator.clipboard && navigator.clipboard.write) {
+        try {
+            const item = new ClipboardItem({
+                "text/html": new Blob([html], { type: "text/html" }),
+                "text/plain": new Blob([plainText], { type: "text/plain" })
+            });
+            await navigator.clipboard.write([item]);
+            alert("Header + table copied as rich table.");
+            return;
+        } catch (e) {
+            console.warn("HTML clipboard failed, falling back", e);
+        }
     }
-}
 
-function fallbackCopy(text) {
+    // fallback – текст
     const ta = document.createElement("textarea");
-    ta.value = text;
+    ta.value = plainText;
     ta.style.position = "fixed";
     ta.style.left = "-9999px";
     document.body.appendChild(ta);
     ta.select();
     try {
         document.execCommand("copy");
-        alert("Header + table copied to clipboard.");
+        alert("Header + table copied (text-only fallback).");
     } catch (e) {
         alert("Copy failed in this browser.");
     }
     document.body.removeChild(ta);
 }
 
+function stripHtml(html) {
+    const div = document.createElement("div");
+    div.innerHTML = html;
+    return div.innerText;
+}
+
 /*************************************************
- * INITIALISE EVERYTHING ON LOAD
+ * EXCEL EXPORT HELPERS (ARCHIVES + SUMMARY)
  *************************************************/
-document.addEventListener("DOMContentLoaded", () => {
-    // router
-    const last = localStorage.getItem("lastPage") || "home";
-    showPage(last);
+function downloadArchiveExcel() {
+    if (typeof XLSX === "undefined") {
+        alert("Excel export library (XLSX) not loaded.");
+        return;
+    }
+    const container = document.getElementById("archiveTables");
+    if (!container) return;
+    const tables = container.querySelectorAll("table");
+    if (!tables.length) {
+        alert("No tables to export.");
+        return;
+    }
 
-    // theme
-    initThemeToggle();
+    const wb = XLSX.utils.book_new();
+    tables.forEach((tbl, idx) => {
+        const ws = XLSX.utils.table_to_sheet(tbl);
+        XLSX.utils.book_append_sheet(wb, ws, `Archive_${idx + 1}`);
+    });
 
-    // archive UI + sidebar
-    initArchiveUI();
-    loadSidebarSheets();
+    XLSX.writeFile(wb, "archives.xlsx");
+}
 
-    // default header meta (used until user picks a sheet)
-    setCurrentSheetMeta(DEFAULT_META);
-});
+function downloadSummaryExcel() {
+    if (typeof XLSX === "undefined") {
+        alert("Excel export library (XLSX) not loaded.");
+        return;
+    }
+    const container = document.getElementById("summary-main-export");
+    if (!container) return;
+    const tables = container.querySelectorAll("table");
+    if (!tables.length) {
+        alert("No tables to export.");
+        return;
+    }
+
+    const wb = XLSX.utils.book_new();
+    tables.forEach((tbl, idx) => {
+        const ws = XLSX.utils.table_to_sheet(tbl);
+        const name = idx === 0 ? "Statistics" : "Pricing";
+        XLSX.utils.book_append_sheet(wb, ws, name);
+    });
+
+    const epCfg = SUMMARY_EPISODES[currentSummaryEpisode] || { label: "episode" };
+    XLSX.writeFile(wb, `summary_${epCfg.label.replace(/[^a-z0-9]/gi, "_")}.xlsx`);
+}
+
+/*************************************************
+ * SUMMARY PAGE – LOAD DATA & RENDER
+ *************************************************/
+function initSummaryPage() {
+    const select = document.getElementById("summaryEpisodeSelect");
+    if (!select) return;
+
+    // just in case – ensure values match config
+    select.value = currentSummaryEpisode;
+
+    select.addEventListener("change", () => {
+        currentSummaryEpisode = select.value;
+        if (summaryLoaded) {
+            renderSummaryForEpisode(currentSummaryEpisode);
+        }
+    });
+
+    const btnCopy = document.getElementById("btnSummaryCopy");
+    if (btnCopy) {
+        btnCopy.onclick = () =>
+            copyContainerAsHtml("headerInfoSummary", "summary-main-export");
+    }
+
+    const btnExcel = document.getElementById("btnSummaryExcel");
+    if (btnExcel) {
+        btnExcel.onclick = downloadSummaryExcel;
+    }
+
+    loadSummaryData();
+}
+
+async function loadSummaryData() {
+    const statsContainer = document.getElementById("statistics-table");
+    if (statsContainer) {
+        statsContainer.innerHTML =
+            `<div class="loading-box">Loading Summary data from Google Apps Script…</div>`;
+    }
+
+    try {
+        const url = SUMMARY_WEBAPP_URL + "?_=" + Date.now();
+        const resp = await fetch(url, { headers: { "Accept": "application/json" } });
+        const data = await resp.json();
+
+        if (!Array.isArray(data) || !data.length) {
+            throw new Error("No summary data returned.");
+        }
+
+        summaryRows = data;
+        summaryLoaded = true;
+
+        renderSummaryForEpisode(currentSummaryEpisode);
+        renderRawSummary();
+
+    } catch (err) {
+        console.error(err);
+        if (statsContainer) {
+            statsContainer.innerHTML =
+                `<div class="loading-box">Error while loading Summary data: ${err.message}</div>`;
+        }
+    }
+}
+
+function safeNumber(val) {
+    if (val === null || val === undefined) return 0;
+    const n = parseFloat(val.toString().rep

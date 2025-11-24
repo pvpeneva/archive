@@ -104,20 +104,41 @@
         <section id="page-summary" class="page" style="display:none;">
             <div class="summary-container">
                 <h2>Summary</h2>
-                <p>Overview of your entire archive: stats, totals, pricing, and raw sheet summary.</p>
+                <p>Overview of your entire archive: per-episode statistics, totals and pricing.</p>
 
-                <!-- HEADER INFO ALSO SHOWN HERE IF NEEDED -->
+                <!-- HEADER INFO ALSO SHOWN HERE -->
                 <div id="headerInfoSummary" class="header-info-wrapper"></div>
 
-                <!-- SUMMARY CARDS -->
-                <h3>Statistics</h3>
-                <div id="summary-cards" class="summary-cards"></div>
+                <!-- EPISODE SELECT + ACTIONS -->
+                <div class="summary-controls">
+                    <div class="summary-episode-select">
+                        <label for="summaryEpisodeSelect">Select Episode</label>
+                        <select id="summaryEpisodeSelect">
+                            <option value="duckwitz">Duckwitz</option>
+                            <option value="alice">Alice</option>
+                            <option value="law1">LAW 1</option>
+                            <option value="law2">LAW 2</option>
+                            <option value="frybing">Fry/Bing</option>
+                        </select>
+                    </div>
+                    <div class="summary-actions">
+                        <button id="btnSummaryCopy" class="archive-btn success">Copy</button>
+                        <button id="btnSummaryExcel" class="archive-btn primary">Download Excel</button>
+                    </div>
+                </div>
 
-                <!-- PRICING -->
-                <h3>Pricing</h3>
-                <div id="pricing-table" class="pricing-table"></div>
+                <!-- ВСИЧКО, КОЕТО ЩЕ КОПИРАМЕ / ЕКСПОРТИРАМЕ -->
+                <div id="summary-main-export">
+                    <!-- STATISTICS TABLE -->
+                    <h3>Statistics</h3>
+                    <div id="statistics-table"></div>
 
-                <!-- RAW SUMMARY -->
+                    <!-- PRICING TABLE -->
+                    <h3>Pricing</h3>
+                    <div id="pricing-table" class="pricing-table"></div>
+                </div>
+
+                <!-- RAW VIEW -->
                 <h3>Raw Summary (from Sheet)</h3>
                 <div id="summary-raw" class="summary-raw"></div>
             </div>
@@ -129,6 +150,8 @@
     <button id="themeToggle" class="theme-toggle">Dark</button>
 
     <!-- SCRIPTS -->
+    <!-- XLSX за Excel export -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="script.js"></script>
 
 </body>

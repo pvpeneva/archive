@@ -735,4 +735,197 @@ async function loadSummaryData() {
 
 function safeNumber(val) {
     if (val === null || val === undefined) return 0;
-    const n = parseFloat(val.toString().rep
+    const n = parseFloat(val.toString().replace(",", "."));
+    return isNaN(n) ? 0 : n;
+}
+
+function renderSummaryForEpisode(epKey) {
+    const cfg = SUMMARY_EPISODES[epKey];
+    const statsContainer = document.getElementById("statistics-table");
+    if (!cfg || !statsContainer) return;
+
+    const rows = summaryRows.filter(r => {
+        const name = r[SUMMARY_ARCHIVE_COL];
+        return name !== null && name !== undefined && name.toString().trim() !== "";
+    });
+
+    if (!rows.length) {
+        statsContainer.innerHTML =
+            `<div class="loading-box">No rows in Summary for this episode.</div>`;
+        return;
+    }
+
+    let bodyHtml = "";
+    let totalStills = 0;
+    let totalClips = 0;
+    let totalFrames = 0;
+
+    rows.forEach((r, idx) => {
+        const archiveName = r[SUMMARY_ARCHIVE_COL] || "";
+        const stills = safeNumber(r[cfg.stillsCol]);
+        const clips = safeNumber(r[cfg.clipsCol]);
+        const tcRaw = r[cfg.tcCol] || "";
+        const tcStr = tcRaw ? tcRaw.toString() : "";
+        const frames = tcToFrames(tcStr);
+
+        totalStills += stills;
+        totalClips += clips;
+        totalFrames += frames;
+
+        bodyHtml += `
+            <tr>
+                <td>${idx + 1}</td>
+                <td>${archiveName}</td>
+                <td>${stills}</td>
+                <td>${clips}</td>
+                <td class="duration-cell">${tcStr}</td>
+            </tr>
+        `;
+    });
+
+    const totalTc = framesToTc(totalFrames);
+
+    statsContainer.innerHTML = `
+        <div class="archive-section">
+            <div class="archive-title">
+                <span>${cfg.label} – Statistics</span>
+                <span>${rows.length} archives</span>
+            </div>
+            <table class="archive-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Archive Name</th>
+                        <th>Stills</th>
+                        <th>Clips</th>
+                        <th>Total TC</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${bodyHtml}
+                    <tr class="total-row">
+                        <td colspan="2"><strong>Total</strong></td>
+                        <td><strong>${totalStills}</strong></td>
+                        <td><strong>${totalClips}</strong></td>
+                        <td><strong>${totalTc}</strong></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    `;
+
+    renderPricingTable(totalStills);
+}
+
+function renderPricingTable(totalStills) {
+    const container = document.getElementById("pricing-table");
+    if (!container) return;
+
+    container.innerHTML = `
+        <table>
+            <tbody>
+                <tr>
+                    <th>Metric</th>
+                    <th>Value</th>
+                </tr>
+                <tr>
+                    <td>Total stills</td>
+                    <td id="pricingTotalStills" data-stills="${totalStills}">${totalStills}</td>
+                </tr>
+                <tr>
+                    <td>Cost per still</td>
+                    <td>
+                        <input id="pricingCostPerStill" type="number" min="0" step="0.01" value="0">
+                    </td>
+                </tr>
+                <tr>
+                    <td>Total stills cost</td>
+                    <td id="pricingStillsCost">0.00</td>
+                </tr>
+                <tr>
+                    <td>Extra costs</td>
+                    <td>
+                        <input id="pricingExtraCosts" type="number" step="0.01" value="0">
+                    </td>
+                </tr>
+                <tr class="pricing-total-row">
+                    <td>Total calculated cost</td>
+                    <td id="pricingTotalCost">0.00</td>
+                </tr>
+            </tbody>
+        </table>
+    `;
+
+    const costInput = document.getElementById("pricingCostPerStill");
+    const extraInput = document.getElementById("pricingExtraCosts");
+    const stillsCostEl = document.getElementById("pricingStillsCost");
+    const totalCostEl = document.getElementById("pricingTotalCost");
+    const stillsEl = document.getElementById("pricingTotalStills");
+
+    const recalc = () => {
+        const stills = safeNumber(stillsEl.dataset.stills || 0);
+        const costPerStill = safeNumber(costInput.value || 0);
+        const extra = safeNumber(extraInput.value || 0);
+
+        const stillsCost = stills * costPerStill;
+        const total = stillsCost + extra;
+
+        stillsCostEl.textContent = stillsCost.toFixed(2);
+        totalCostEl.textContent = total.toFixed(2);
+    };
+
+    costInput.addEventListener("input", recalc);
+    extraInput.addEventListener("input", recalc);
+}
+
+/*************************************************
+ * RAW SUMMARY VIEW
+ *************************************************/
+function renderRawSummary() {
+    const container = document.getElementById("summary-raw");
+    if (!container) return;
+
+    if (!summaryRows.length) {
+        container.innerHTML = `<div class="loading-box">No rows in Summary sheet.</div>`;
+        return;
+    }
+
+    let html = "";
+    summaryRows.slice(0, 120).forEach(r => {
+        const name = r[SUMMARY_ARCHIVE_COL] || "";
+        const clips = r["clips"] || r["Clips"] || "";
+        const tc = r["total TC"] || r["Total TC"] || "";
+        html += `
+            <div class="summary-raw-row">
+                <div class="summary-raw-label">${name}</div>
+                <div class="summary-raw-value">
+                    Clips: ${clips || 0} • Total TC: ${tc || ""}
+                </div>
+            </div>
+        `;
+    });
+
+    container.innerHTML = html;
+}
+
+/*************************************************
+ * INITIALISE EVERYTHING ON LOAD
+ *************************************************/
+document.addEventListener("DOMContentLoaded", () => {
+    // router
+    const last = localStorage.getItem("lastPage") || "home";
+    showPage(last);
+
+    // theme
+    initThemeToggle();
+
+    // archive UI + sidebar
+    initArchiveUI();
+    loadSidebarSheets();
+
+    // default header meta (used until user picks a sheet)
+    setCurrentSheetMeta(DEFAULT_META);
+
+    // summary page
+    initSummaryPage();
+});

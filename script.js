@@ -281,7 +281,7 @@ function initArchiveUI() {
         </div>
 
         <div id="archiveTables" style="margin-top:25px;"></div>
-    `;
+    ";
 
     // wire buttons
     document.getElementById("btnTest").onclick = testConnection;
@@ -431,7 +431,7 @@ function applyFilters() {
     const sortEl = document.getElementById("sortSelect");
 
     const term = termEl ? termEl.value.toLowerCase() : "";
-    const arc = arcEl ? arcEl.value : "all";
+       const arc = arcEl ? arcEl.value : "all";
     const sort = sortEl ? sortEl.value : "duration-desc";
 
     filteredData = archiveData.filter(a => {
@@ -565,6 +565,8 @@ function renderTables(data) {
 
 /*************************************************
  * GENERIC COPY AS HTML (header + tables)
+ * Новата версия – копира реални <table> структури,
+ * които Gmail/Outlook разпознават като таблица.
  *************************************************/
 async function copyContainerAsHtml(headerId, mainId) {
     const mainEl = document.getElementById(mainId);
@@ -575,13 +577,16 @@ async function copyContainerAsHtml(headerId, mainId) {
 
     const headerEl = document.getElementById(headerId);
 
+    // Важно: чист HTML с <table>, без <html><body> wrappers
     const html = `
-        <html>
-        <body>
-            ${headerEl ? headerEl.innerHTML : ""}
-            ${mainEl.innerHTML}
-        </body>
-        </html>
+        <table border="1" cellspacing="0" cellpadding="6" style="border-collapse:collapse;font-family:Arial,Helvetica,sans-serif;font-size:13px;">
+            <tr>
+                <td>
+                    ${headerEl ? headerEl.innerHTML : ""}
+                </td>
+            </tr>
+        </table>
+        ${mainEl.innerHTML}
     `;
 
     const plainText = stripHtml(html);
@@ -593,10 +598,10 @@ async function copyContainerAsHtml(headerId, mainId) {
                 "text/plain": new Blob([plainText], { type: "text/plain" })
             });
             await navigator.clipboard.write([item]);
-            alert("Header + table copied as rich table.");
+            alert("Header + table copied as rich HTML table.");
             return;
         } catch (e) {
-            console.warn("HTML clipboard failed, falling back", e);
+            console.warn("HTML clipboard failed, falling back to plain text", e);
         }
     }
 
@@ -678,7 +683,6 @@ function initSummaryPage() {
     const select = document.getElementById("summaryEpisodeSelect");
     if (!select) return;
 
-    // just in case – ensure values match config
     select.value = currentSummaryEpisode;
 
     select.addEventListener("change", () => {
@@ -912,20 +916,14 @@ function renderRawSummary() {
  * INITIALISE EVERYTHING ON LOAD
  *************************************************/
 document.addEventListener("DOMContentLoaded", () => {
-    // router
     const last = localStorage.getItem("lastPage") || "home";
     showPage(last);
 
-    // theme
     initThemeToggle();
-
-    // archive UI + sidebar
     initArchiveUI();
     loadSidebarSheets();
 
-    // default header meta (used until user picks a sheet)
     setCurrentSheetMeta(DEFAULT_META);
 
-    // summary page
     initSummaryPage();
 });

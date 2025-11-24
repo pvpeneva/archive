@@ -66,7 +66,7 @@ const DEFAULT_META = {
     episodeLabel: ""
 };
 
-// SUMMARY WEBAPP (от теб)
+// SUMMARY WEBAPP
 const SUMMARY_WEBAPP_URL =
     "https://script.google.com/macros/s/AKfycbyXaGpw4aVA_3fh8_GBrih9_Kj6loNHQ7dKKDGnIA83E2U1IfvRADgLWT8i_GKSA8TeAw/exec";
 
@@ -281,7 +281,7 @@ function initArchiveUI() {
         </div>
 
         <div id="archiveTables" style="margin-top:25px;"></div>
-    ";
+    `;
 
     // wire buttons
     document.getElementById("btnTest").onclick = testConnection;
@@ -431,7 +431,7 @@ function applyFilters() {
     const sortEl = document.getElementById("sortSelect");
 
     const term = termEl ? termEl.value.toLowerCase() : "";
-       const arc = arcEl ? arcEl.value : "all";
+    const arc = arcEl ? arcEl.value : "all";
     const sort = sortEl ? sortEl.value : "duration-desc";
 
     filteredData = archiveData.filter(a => {
@@ -565,8 +565,6 @@ function renderTables(data) {
 
 /*************************************************
  * GENERIC COPY AS HTML (header + tables)
- * Новата версия – копира реални <table> структури,
- * които Gmail/Outlook разпознават като таблица.
  *************************************************/
 async function copyContainerAsHtml(headerId, mainId) {
     const mainEl = document.getElementById(mainId);
@@ -577,7 +575,7 @@ async function copyContainerAsHtml(headerId, mainId) {
 
     const headerEl = document.getElementById(headerId);
 
-    // Важно: чист HTML с <table>, без <html><body> wrappers
+    // Чист HTML с <table>, без <html><body> wrappers
     const html = `
         <table border="1" cellspacing="0" cellpadding="6" style="border-collapse:collapse;font-family:Arial,Helvetica,sans-serif;font-size:13px;">
             <tr>
@@ -927,3 +925,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     initSummaryPage();
 });
+
+// за всеки случай – expose в window, ако имаш inline onclick="showPage('home')"
+window.showPage = showPage;

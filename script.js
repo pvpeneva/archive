@@ -189,6 +189,7 @@ async function loadSidebarSheets() {
                 onSelectSheetFromSidebar(sheet, li, true);
             }
         });
+
     } catch (err) {
         console.error("Error loading sheets-config.json", err);
         list.innerHTML = "<li class='sidebar-item'>Error loading sheets</li>";
@@ -355,6 +356,7 @@ async function refreshData() {
         if (filtersPanel) filtersPanel.style.display = "block";
 
         if (statusEl) statusEl.textContent = "Status: Data Loaded";
+
     } catch (err) {
         console.error(err);
         if (statusEl) statusEl.textContent = "Error while loading data";
@@ -366,12 +368,12 @@ async function refreshData() {
 }
 
 /*************************************************
- * PROCESS DATA (ARCHIVES) + NUMERIC ID SORT
+ * PROCESS DATA (ARCHIVES)
  *************************************************/
 
-// numeric helper – взима число от ID (или NaN)
+// helper: numeric ID parsing for auto-sort
 function parseIdNumber(id) {
-    if (id === null || id === undefined) return NaN;
+    if (!id) return NaN;
     const m = id.toString().match(/\d+/);
     return m ? parseInt(m[0], 10) : NaN;
 }
@@ -399,17 +401,22 @@ function processRows(rows) {
         map.get(archive).durations.push(dur || "00:00:00:00");
     });
 
-    archiveData = Array.from(map.values()).map(a => {
-        // 🔥 АВТОМАТИЧЕН NUMERIC SORT ПО ID (ASC)
+    // auto-sort clips inside each archive by ID (numeric ascending)
+    for (const a of map.values()) {
         a.clips.sort((c1, c2) => {
             const n1 = parseIdNumber(c1.id);
             const n2 = parseIdNumber(c2.id);
-            if (isNaN(n1) && isNaN(n2)) return (c1.id || "").localeCompare(c2.id || "");
+            const s1 = (c1.id || "").toString();
+            const s2 = (c2.id || "").toString();
+
+            if (isNaN(n1) && isNaN(n2)) return s1.localeCompare(s2);
             if (isNaN(n1)) return 1;
             if (isNaN(n2)) return -1;
-            return n1 - n2; // ascending
+            return n1 - n2;
         });
+    }
 
+    archiveData = Array.from(map.values()).map(a => {
         const total = sumDurations(a.durations);
         return {
             name: a.name,
@@ -491,7 +498,7 @@ function resetFilters() {
 }
 
 /*************************************************
- * TIME-CODE HELPERS
+ * TIME-CODE + PRICE HELPERS
  *************************************************/
 function tcToFrames(tc, fps = 25) {
     if (!tc) return 0;
@@ -518,6 +525,34 @@ function sumDurations(list) {
     return framesToTc(totalFrames);
 }
 
+// numeric safe parse (seconds, counts)
+function safeNumber(val) {
+    if (val === null || val === undefined) return 0;
+    const n = parseFloat(val.toString().replace(",", "."));
+    return isNaN(n) ? 0 : n;
+}
+
+// parse euro-formatted strings: "12.956,00 €" -> 12956.00
+function parseEuro(val) {
+    if (val === null || val === undefined) return 0;
+    let s = val.toString();
+    s = s.replace(/\s+/g, "");  // remove spaces
+    s = s.replace(/€/g, "");    // remove €
+    s = s.replace(/\./g, "");   // remove thousands dots
+    s = s.replace(",", ".");    // comma -> dot
+    const n = parseFloat(s);
+    return isNaN(n) ? 0 : n;
+}
+
+// format number back to "12.956,00 €"
+function formatEuro(num) {
+    if (!isFinite(num)) num = 0;
+    return num.toLocaleString("de-DE", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    }) + " €";
+}
+
 /*************************************************
  * RENDER TABLES (ARCHIVES)
  *************************************************/
@@ -526,7 +561,7 @@ function renderTables(data) {
     if (!container) return;
 
     if (!data || !data.length) {
-    container.innerHTML = `<div class="loading-box">No archives match your filters.</div>`;
+        container.innerHTML = `<div class="loading-box">No archives match your filters.</div>`;
         return;
     }
 
@@ -539,18 +574,17 @@ function renderTables(data) {
                 <span>${a.name}</span>
                 <span>${a.entries} clips • Total: ${a.totalDuration}</span>
             </div>
-            <table class="archive-table" border="1" cellspacing="0" cellpadding="6"
-                   style="border-collapse:collapse;table-layout:fixed;width:100%;font-family:Arial,Helvetica,sans-serif;font-size:13px;">
+            <table class="archive-table">
                 <thead>
                     <tr>
-                        <th style="width:40px;">#</th>
-                        <th style="width:70px;">ID</th>
-                        <th style="width:80px;">Inv No</th>
-                        <th style="width:350px;">File Name</th>
-                        <th style="width:110px;">Source In</th>
-                        <th style="width:110px;">Source Out</th>
-                        <th style="width:110px;">Duration</th>
-                        <th style="width:80px;">Link</th>
+                        <th>#</th>
+                        <th>ID</th>
+                        <th>Inv No</th>
+                        <th>File Name</th>
+                        <th>Source In</th>
+                        <th>Source Out</th>
+                        <th>Duration</th>
+                        <th>Link</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -559,7 +593,7 @@ function renderTables(data) {
                             <td>${i + 1}</td>
                             <td>${c.id || ""}</td>
                             <td>${c.inv || ""}</td>
-                            <td style="white-space:normal;word-break:break-word;">${c.file || ""}</td>
+                            <td style="max-width:380px;white-space:normal;">${c.file || ""}</td>
                             <td>${c.sin || ""}</td>
                             <td>${c.sout || ""}</td>
                             <td class="duration-cell">${c.dur || ""}</td>
@@ -582,7 +616,7 @@ function renderTables(data) {
 
 /*************************************************
  * GENERIC COPY AS HTML (header + tables)
- * Копира реални <table> структури – Gmail / Outlook friendly
+ * – Gmail/Outlook friendly: real <table> structures
  *************************************************/
 async function copyContainerAsHtml(headerId, mainId) {
     const mainEl = document.getElementById(mainId);
@@ -593,22 +627,16 @@ async function copyContainerAsHtml(headerId, mainId) {
 
     const headerEl = document.getElementById(headerId);
 
-    // добавяме border/width/стил към ВСИЧКИ таблици, за да изглеждат добре в пощи
-    let bodyHtml = mainEl.innerHTML.replace(
-        /<table([^>]*)>/gi,
-        '<table$1 border="1" cellspacing="0" cellpadding="6" style="border-collapse:collapse;table-layout:fixed;width:100%;font-family:Arial,Helvetica,sans-serif;font-size:13px;">'
-    );
-
+    // Чист HTML с <table>, без <html><body> wrappers
     const html = `
-        <table border="1" cellspacing="0" cellpadding="6"
-               style="border-collapse:collapse;font-family:Arial,Helvetica,sans-serif;font-size:13px;width:100%;margin-bottom:10px;">
+        <table border="1" cellspacing="0" cellpadding="6" style="border-collapse:collapse;font-family:Arial,Helvetica,sans-serif;font-size:13px;">
             <tr>
                 <td>
                     ${headerEl ? headerEl.innerHTML : ""}
                 </td>
             </tr>
         </table>
-        ${bodyHtml}
+        ${mainEl.innerHTML}
     `;
 
     const plainText = stripHtml(html);
@@ -627,7 +655,7 @@ async function copyContainerAsHtml(headerId, mainId) {
         }
     }
 
-    // fallback – само текст
+    // fallback – текст
     const ta = document.createElement("textarea");
     ta.value = plainText;
     ta.style.position = "fixed";
@@ -749,6 +777,7 @@ async function loadSummaryData() {
 
         renderSummaryForEpisode(currentSummaryEpisode);
         renderRawSummary();
+
     } catch (err) {
         console.error(err);
         if (statsContainer) {
@@ -758,12 +787,9 @@ async function loadSummaryData() {
     }
 }
 
-function safeNumber(val) {
-    if (val === null || val === undefined) return 0;
-    const n = parseFloat(val.toString().replace(",", "."));
-    return isNaN(n) ? 0 : n;
-}
-
+/*************************************************
+ * SUMMARY – EPISODE STATISTICS + PRICES (Variant A)
+ *************************************************/
 function renderSummaryForEpisode(epKey) {
     const cfg = SUMMARY_EPISODES[epKey];
     const statsContainer = document.getElementById("statistics-table");
@@ -785,25 +811,60 @@ function renderSummaryForEpisode(epKey) {
     let totalClips = 0;
     let totalFrames = 0;
 
+    // price totals
+    let sumTotalSeconds = 0;
+    let sumTotalFootageEuro = 0;
+    let sumStillsCount = 0;
+    let sumStillsEuro = 0;
+    let sumExtraEuro = 0;
+    let sumTotalPriceEuro = 0;
+
     rows.forEach((r, idx) => {
         const archiveName = r[SUMMARY_ARCHIVE_COL] || "";
-        const stills = safeNumber(r[cfg.stillsCol]);
-        const clips = safeNumber(r[cfg.clipsCol]);
+
+        // per-episode metrics
+        const epStills = safeNumber(r[cfg.stillsCol]);
+        const epClips = safeNumber(r[cfg.clipsCol]);
         const tcRaw = r[cfg.tcCol] || "";
         const tcStr = tcRaw ? tcRaw.toString() : "";
         const frames = tcToFrames(tcStr);
 
-        totalStills += stills;
-        totalClips += clips;
+        totalStills += epStills;
+        totalClips += epClips;
         totalFrames += frames;
+
+        // PRICE COLUMNS – exact column names from sheet
+        const totalSeconds = safeNumber(r["total s"]);
+        const pricePerSec = r["per sec"] || "";
+        const totalFootage = r["Total footage"] || "";
+        const stillsCount = safeNumber(r["stills"]);
+        const pricePerStill = r["per still"] || "";
+        const totalStillsPrice = r["total stills"] || "";
+        const extraCosts = r["extra costs"] || "";
+        const totalPriceCalc = r["Total price calc"] || "";
+
+        sumTotalSeconds += totalSeconds;
+        sumTotalFootageEuro += parseEuro(totalFootage);
+        sumStillsCount += stillsCount;
+        sumStillsEuro += parseEuro(totalStillsPrice);
+        sumExtraEuro += parseEuro(extraCosts);
+        sumTotalPriceEuro += parseEuro(totalPriceCalc);
 
         bodyHtml += `
             <tr>
                 <td>${idx + 1}</td>
                 <td>${archiveName}</td>
-                <td>${stills}</td>
-                <td>${clips}</td>
+                <td>${epStills}</td>
+                <td>${epClips}</td>
                 <td class="duration-cell">${tcStr}</td>
+                <td>${totalSeconds || ""}</td>
+                <td>${pricePerSec}</td>
+                <td>${totalFootage}</td>
+                <td>${stillsCount || ""}</td>
+                <td>${pricePerStill}</td>
+                <td>${totalStillsPrice}</td>
+                <td>${extraCosts}</td>
+                <td>${totalPriceCalc}</td>
             </tr>
         `;
     });
@@ -813,100 +874,127 @@ function renderSummaryForEpisode(epKey) {
     statsContainer.innerHTML = `
         <div class="archive-section">
             <div class="archive-title">
-                <span>${cfg.label} – Statistics</span>
+                <span>${cfg.label} – Statistics & Prices</span>
                 <span>${rows.length} archives</span>
             </div>
-            <table class="archive-table" border="1" cellspacing="0" cellpadding="6"
-                   style="border-collapse:collapse;table-layout:fixed;width:100%;font-family:Arial,Helvetica,sans-serif;font-size:13px;">
+            <table class="archive-table">
                 <thead>
                     <tr>
-                        <th style="width:40px;">#</th>
+                        <th>#</th>
                         <th>Archive Name</th>
-                        <th style="width:90px;">Stills</th>
-                        <th style="width:90px;">Clips</th>
-                        <th style="width:120px;">Total TC</th>
+                        <th>Stills (episode)</th>
+                        <th>Clips (episode)</th>
+                        <th>Total TC (episode)</th>
+                        <th>total s</th>
+                        <th>per sec</th>
+                        <th>Total footage</th>
+                        <th>stills</th>
+                        <th>per still</th>
+                        <th>total stills</th>
+                        <th>extra costs</th>
+                        <th>Total price calc</th>
                     </tr>
                 </thead>
                 <tbody>
                     ${bodyHtml}
                     <tr class="total-row">
-                        <td colspan="2"><strong>Total</strong></td>
+                        <td><strong>Total</strong></td>
+                        <td></td>
                         <td><strong>${totalStills}</strong></td>
                         <td><strong>${totalClips}</strong></td>
                         <td><strong>${totalTc}</strong></td>
+                        <td><strong>${sumTotalSeconds}</strong></td>
+                        <td></td>
+                        <td><strong>${formatEuro(sumTotalFootageEuro)}</strong></td>
+                        <td><strong>${sumStillsCount}</strong></td>
+                        <td></td>
+                        <td><strong>${formatEuro(sumStillsEuro)}</strong></td>
+                        <td><strong>${formatEuro(sumExtraEuro)}</strong></td>
+                        <td><strong>${formatEuro(sumTotalPriceEuro)}</strong></td>
                     </tr>
                 </tbody>
             </table>
         </div>
     `;
 
-    renderPricingTable(totalStills);
+    // оставяме и малката pricing таблица като summary (може да я ползваш за бърз поглед)
+    renderPricingTable({
+        archivesCount: rows.length,
+        totalStills,
+        totalClips,
+        totalFrames,
+        totalSeconds: sumTotalSeconds,
+        totalFootageEuro: sumTotalFootageEuro,
+        totalStillsCount: sumStillsCount,
+        totalStillsEuro: sumStillsEuro,
+        extraEuro: sumExtraEuro,
+        totalPriceEuro: sumTotalPriceEuro
+    });
 }
 
-function renderPricingTable(totalStills) {
+/*************************************************
+ * PRICING SUMMARY TABLE (Variant A – read-only)
+ *************************************************/
+function renderPricingTable(totals) {
     const container = document.getElementById("pricing-table");
     if (!container) return;
 
+    const totalTc = framesToTc(totals.totalFrames || 0);
+
     container.innerHTML = `
-        <table border="1" cellspacing="0" cellpadding="6"
-               style="border-collapse:collapse;table-layout:fixed;width:100%;font-family:Arial,Helvetica,sans-serif;font-size:13px;">
+        <table>
             <tbody>
                 <tr>
-                    <th style="width:60%;">Metric</th>
+                    <th>Metric</th>
                     <th>Value</th>
                 </tr>
                 <tr>
-                    <td>Total stills</td>
-                    <td id="pricingTotalStills" data-stills="${totalStills}">${totalStills}</td>
+                    <td>Archives</td>
+                    <td>${totals.archivesCount}</td>
                 </tr>
                 <tr>
-                    <td>Cost per still</td>
-                    <td>
-                        <input id="pricingCostPerStill" type="number" min="0" step="0.01" value="0">
-                    </td>
+                    <td>Total stills (episode)</td>
+                    <td>${totals.totalStills}</td>
                 </tr>
                 <tr>
-                    <td>Total stills cost</td>
-                    <td id="pricingStillsCost">0.00</td>
+                    <td>Total clips (episode)</td>
+                    <td>${totals.totalClips}</td>
+                </tr>
+                <tr>
+                    <td>Total TC (episode)</td>
+                    <td>${totalTc}</td>
+                </tr>
+                <tr>
+                    <td>Total seconds (pricing total s)</td>
+                    <td>${totals.totalSeconds}</td>
+                </tr>
+                <tr>
+                    <td>Total footage (video price)</td>
+                    <td>${formatEuro(totals.totalFootageEuro)}</td>
+                </tr>
+                <tr>
+                    <td>Total stills (pricing)</td>
+                    <td>${totals.totalStillsCount}</td>
+                </tr>
+                <tr>
+                    <td>Total stills price</td>
+                    <td>${formatEuro(totals.totalStillsEuro)}</td>
                 </tr>
                 <tr>
                     <td>Extra costs</td>
-                    <td>
-                        <input id="pricingExtraCosts" type="number" step="0.01" value="0">
-                    </td>
+                    <td>${formatEuro(totals.extraEuro)}</td>
                 </tr>
                 <tr class="pricing-total-row">
-                    <td>Total calculated cost</td>
-                    <td id="pricingTotalCost">0.00</td>
+                    <td>Total price calc</td>
+                    <td>${formatEuro(totals.totalPriceEuro)}</td>
                 </tr>
             </tbody>
         </table>
     `;
-
-    const costInput = document.getElementById("pricingCostPerStill");
-    const extraInput = document.getElementById("pricingExtraCosts");
-    const stillsCostEl = document.getElementById("pricingStillsCost");
-    const totalCostEl = document.getElementById("pricingTotalCost");
-    const stillsEl = document.getElementById("pricingTotalStills");
-
-    const recalc = () => {
-        const stills = safeNumber(stillsEl.dataset.stills || 0);
-        const costPerStill = safeNumber(costInput.value || 0);
-        const extra = safeNumber(extraInput.value || 0);
-
-        const stillsCost = stills * costPerStill;
-        const total = stillsCost + extra;
-
-        stillsCostEl.textContent = stillsCost.toFixed(2);
-        totalCostEl.textContent = total.toFixed(2);
-    };
-
-    costInput.addEventListener("input", recalc);
-    extraInput.addEventListener("input", recalc);
 }
 
 /*************************************************
- * RAW SUMMARY VIEW
+ * RAW SUMMARY VIEW (simple text list)
  *************************************************/
 function renderRawSummary() {
     const container = document.getElementById("summary-raw");

@@ -1,1 +1,161 @@
-<!DOCTYPE html> <html lang="en"> <head> <meta charset="UTF-8"> <meta name="viewport" content="width=device-width, initial-scale=1.0"> <title>Live Archive Tool</title> <!-- Styles --> <link rel="stylesheet" href="style.css"> <!-- Favicon fix --> <link rel="icon" href="data:;base64,iVBORw0KGgo="> </head> <body> <!-- NAVIGATION --> <nav class="nav"> <div class="nav-left"> <div class="logo-title"> <span class="logo-main">Live Archive</span> <span class="logo-sub">Tool</span> </div> </div> <div class="nav-right"> <div class="nav-links"> <a id="nav-home" href="#" onclick="showPage('home')">Home</a> <a id="nav-archives" href="#" onclick="showPage('archives')">Archives</a> <a id="nav-summary" href="#" onclick="showPage('summary')">Summary</a> </div> </div> </nav> <!-- MAIN WRAPPER --> <main class="page-wrapper"> <!-- HOME PAGE --> <section id="page-home" class="page active" style="display:block;"> <div class="home-container"> <h2>Welcome</h2> <!-- HEADER INFO (auto from sheets-config) --> <div id="headerInfoHome" class="header-info-wrapper"></div> <p> This tool lets you load, organize, filter, and summarize film archive sheets directly from Google Sheets using Apps Script. </p> <div class="home-box"> <h3>How It Works</h3> <ul> <li>Connect to a Google Sheet via the Web App URL</li> <li>Load and browse archive clips or still images</li> <li>Filter, sort, and search through the database</li> <li>Export or copy results (including header info)</li> <li>Get pricing + summary information</li> </ul> </div> <div class="home-box"> <h3>Your Sheets</h3> <p> Sheets listed in <code>sheets-config.json</code> automatically appear in the sidebar on the <strong>Archives</strong> page. Selecting a sheet loads both its database and the header information above. </p> </div> </div> </section> <!-- ARCHIVES PAGE --> <section id="page-archives" class="page" style="display:none;"> <div class="archives-layout"> <!-- SIDEBAR WITH PREDEFINED SHEETS --> <aside class="sidebar"> <h3 class="sidebar-title">My Sheets</h3> <ul class="sidebar-list" id="sidebarSheets"> <!-- Filled from sheets-config.json by script.js --> </ul> </aside> <!-- MAIN ARCHIVES CONTENT --> <div class="archives-page-container"> <h2>Archives</h2> <p>Select an archive sheet from the menu and load your footage database.</p> <!-- HEADER INFO ON ARCHIVES PAGE --> <div id="headerInfoArchives" class="header-info-wrapper"></div> <!-- The Archive UI (connect box, filters, tables) is injected here --> <div id="archives-content"> <div class="loading-box"> Loading archive system… </div> </div> </div> </div> </section> <!-- SUMMARY PAGE --> <section id="page-summary" class="page" style="display:none;"> <div class="summary-container"> <h2>Summary</h2> <p>Overview of your entire archive: stats, totals, pricing, and raw sheet summary.</p> <!-- HEADER INFO --> <div id="headerInfoSummary" class="header-info-wrapper"></div> <!-- TOP BAR: EPISODE + BUTTONS --> <div class="summary-top-bar"> <div class="summary-episode"> <label for="summaryEpisodeSelect">Select episode</label> <select id="summaryEpisodeSelect"> <option value="duckwitz">Duckwitz</option> <option value="alice">Alice</option> <option value="law1">LAW 1</option> <option value="law2">LAW 2</option> <option value="frybing">Fry/Bing</option> </select> </div> <div class="summary-actions"> <button id="btnSummaryCopy" class="archive-btn success"> Copy header + tables </button> <button id="btnSummaryExcel" class="archive-btn secondary"> Download Excel </button> </div> </div> <!-- MAIN EXPORT WRAPPER (това се копира и изнася в Excel) --> <div id="summary-main-export"> <!-- STATISTICS TABLE --> <h3>Statistics</h3> <div id="statistics-table"></div> <!-- PRICING TABLE --> <h3>Pricing</h3> <div id="pricing-table" class="pricing-table"></div> </div> <!-- RAW SUMMARY VIEW --> <h3>Raw Summary (from Sheet)</h3> <div id="summary-raw" class="summary-raw"></div> </div> </section> </main> <!-- THEME TOGGLE BUTTON --> <button id="themeToggle" class="theme-btn">Dark</button> <!-- XLSX LIBRARY FOR EXCEL EXPORT --> <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" integrity="sha512-4G3pXYtEkb1C9CFWQfHhnY0Ff3q2tFGgF7qd2p2kSYJwZ6a8q2d+kzD0jkGDJQGy/pLNoPLKQfwr+1rVYhYkw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script> <!-- MAIN SCRIPT --> <script src="script.js"></script> </body> </html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Archive Tool</title>
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="style.css">
+
+    <!-- Favicon fix -->
+    <link rel="icon" href="data:;base64,iVBORw0KGgo=">
+</head>
+
+<body>
+
+    <!-- NAVIGATION -->
+    <nav class="nav">
+        <div class="nav-left">
+            <div class="logo-title">
+                <span class="logo-main">Live Archive</span>
+                <span class="logo-sub">Tool</span>
+            </div>
+        </div>
+        <div class="nav-right">
+            <div class="nav-links">
+                <a id="nav-home" href="#" onclick="showPage('home')">Home</a>
+                <a id="nav-archives" href="#" onclick="showPage('archives')">Archives</a>
+                <a id="nav-summary" href="#" onclick="showPage('summary')">Summary</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- MAIN WRAPPER -->
+    <main class="page-wrapper">
+
+        <!-- HOME PAGE -->
+        <section id="page-home" class="page active" style="display:block;">
+            <div class="home-container">
+                <h2>Welcome</h2>
+
+                <!-- HEADER INFO (auto from sheets-config) -->
+                <div id="headerInfoHome" class="header-info-wrapper"></div>
+
+                <p>
+                    This tool lets you load, organize, filter, and summarize film archive sheets
+                    directly from Google Sheets using Apps Script.
+                </p>
+
+                <div class="home-box">
+                    <h3>How It Works</h3>
+                    <ul>
+                        <li>Connect to a Google Sheet via the Web App URL</li>
+                        <li>Load and browse archive clips or still images</li>
+                        <li>Filter, sort, and search through the database</li>
+                        <li>Export or copy results (including header info)</li>
+                        <li>Get pricing + summary information</li>
+                    </ul>
+                </div>
+
+                <div class="home-box">
+                    <h3>Your Sheets</h3>
+                    <p>
+                        Sheets listed in <code>sheets-config.json</code> automatically appear
+                        in the sidebar on the <strong>Archives</strong> page.
+                        Selecting a sheet loads both its database and the header information above.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ARCHIVES PAGE -->
+        <section id="page-archives" class="page" style="display:none;">
+            <div class="archives-layout">
+                <!-- SIDEBAR WITH PREDEFINED SHEETS -->
+                <aside class="sidebar">
+                    <h3 class="sidebar-title">My Sheets</h3>
+                    <ul class="sidebar-list" id="sidebarSheets">
+                        <!-- Filled from sheets-config.json by script.js -->
+                    </ul>
+                </aside>
+
+                <!-- MAIN ARCHIVES CONTENT -->
+                <div class="archives-page-container">
+                    <h2>Archives</h2>
+                    <p>Select an archive sheet from the menu and load your footage database.</p>
+
+                    <!-- HEADER INFO ON ARCHIVES PAGE -->
+                    <div id="headerInfoArchives" class="header-info-wrapper"></div>
+
+                    <!-- The Archive UI (connect box, filters, tables) is injected here -->
+                    <div id="archives-content">
+                        <div class="loading-box">
+                            Loading archive system…
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SUMMARY PAGE -->
+        <section id="page-summary" class="page" style="display:none;">
+            <div class="summary-container">
+                <h2>Summary</h2>
+                <p>Overview of your entire archive: stats, totals, pricing, and raw sheet summary.</p>
+
+                <!-- HEADER INFO -->
+                <div id="headerInfoSummary" class="header-info-wrapper"></div>
+
+                <!-- TOP BAR: EPISODE + BUTTONS -->
+                <div class="summary-top-bar">
+                    <div class="summary-episode">
+                        <label for="summaryEpisodeSelect">Select episode</label>
+                        <select id="summaryEpisodeSelect">
+                            <option value="duckwitz">Duckwitz</option>
+                            <option value="alice">Alice</option>
+                            <option value="law1">LAW 1</option>
+                            <option value="law2">LAW 2</option>
+                            <option value="frybing">Fry/Bing</option>
+                        </select>
+                    </div>
+
+                    <div class="summary-actions">
+                        <button id="btnSummaryCopy" class="archive-btn success">
+                            Copy header + tables
+                        </button>
+                        <button id="btnSummaryExcel" class="archive-btn secondary">
+                            Download Excel
+                        </button>
+                    </div>
+                </div>
+
+                <!-- MAIN EXPORT WRAPPER (това се копира и изнася в Excel) -->
+                <div id="summary-main-export">
+                    <h3>Statistics</h3>
+                    <div id="statistics-table"></div>
+
+                    <h3>Pricing</h3>
+                    <div id="pricing-table" class="pricing-table"></div>
+                </div>
+
+                <h3>Raw Summary (from Sheet)</h3>
+                <div id="summary-raw" class="summary-raw"></div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- THEME TOGGLE BUTTON -->
+    <button id="themeToggle" class="theme-btn">Dark</button>
+
+    <!-- XLSX LIBRARY FOR EXCEL EXPORT -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"
+            integrity="sha512-4G3pXYtEkb1C9CFWQfHhnY0Ff3q2tFGgF7qd2p2kSYJwZ6a8q2d+kzD0jkGDJQGy/pLNoPLKQfwr+1rVYhYkw=="
+            crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+    <!-- MAIN SCRIPT -->
+    <script src="script.js"></script>
+
+</body>
+</html>

@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Live Archive Tool</title>
 
-    <!-- Добавен CSP мета таг с nonce -->
-    <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-eval' 'nonce-randomValue' https://cdnjs.cloudflare.com;">
+    <!-- Добавен CSP мета таг с разрешаване на 'unsafe-inline' и разрешаване на външни ресурси от cdn -->
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com; object-src 'none'; style-src 'self' 'unsafe-inline';">
 
     <!-- Styles -->
     <link rel="stylesheet" href="style.css">
@@ -154,7 +154,7 @@
     <button id="themeToggle" class="theme-btn">Dark</button>
 
     <!-- XLSX LIBRARY FOR EXCEL EXPORT -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
     <!-- MAIN SCRIPT -->
     <script src="script.js"></script>

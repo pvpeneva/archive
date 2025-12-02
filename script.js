@@ -204,3 +204,27 @@ function generateEmailReport() {
 
     document.getElementById("email-output").value = emailText;
 }
+
+/*************************************************
+ * ВРЪЩАНЕ НА КАДРИ (30 FPS)
+ *************************************************/
+// Конвертиране на таймкод в кадри
+function tcToFrames(tc, fps = 30) { 
+    const parts = tc.split(':').map(n => parseInt(n, 10) || 0);
+    const h = parts[0] || 0;
+    const m = parts[1] || 0;
+    const s = parts[2] || 0;
+    const f = parts[3] || 0;
+    return h * 3600 * fps + m * 60 * fps + s * fps + f;
+}
+
+// Конвертиране на кадри в таймкод
+function framesToTc(frames, fps = 30) { 
+    if (!frames) return "00:00:00:00";
+    const h = Math.floor(frames / (3600 * fps));
+    const m = Math.floor((frames % (3600 * fps)) / (60 * fps));
+    const s = Math.floor((frames % (60 * fps)) / fps);
+    const f = frames % fps;
+    const z = n => String(n).padStart(2, "0");
+    return `${z(h)}:${z(m)}:${z(s)}:${z(f)}`;
+}

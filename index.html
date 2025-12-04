@@ -10,10 +10,6 @@
 
     <!-- Favicon fix -->
     <link rel="icon" href="data:;base64,iVBORw0KGgo=">
-
-    <!-- Content Security Policy (CSP) -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com https://script.google.com; style-src 'self' 'unsafe-inline';">
-
 </head>
 
 <body>
@@ -26,6 +22,7 @@
                 <span class="logo-sub">Tool</span>
             </div>
         </div>
+
         <div class="nav-right">
             <div class="nav-links">
                 <a id="nav-home" href="#" onclick="showPage('home')">Home</a>
@@ -37,6 +34,7 @@
 
     <!-- MAIN WRAPPER -->
     <main class="page-wrapper">
+
         <!-- HOME PAGE -->
         <section id="page-home" class="page active" style="display:block;">
             <div class="home-container">
@@ -74,6 +72,7 @@
 
         <!-- ARCHIVES PAGE -->
         <section id="page-archives" class="page" style="display:none;">
+
             <div class="archives-layout">
                 <!-- SIDEBAR WITH PREDEFINED SHEETS -->
                 <aside class="sidebar">
@@ -133,7 +132,7 @@
                     </div>
                 </div>
 
-                <!-- MAIN EXPORT WRAPPER (това се копира и изнася в Excel) -->
+                <!-- MAIN EXPORT WRAPPER -->
                 <div id="summary-main-export">
                     <h3>Statistics</h3>
                     <div id="statistics-table"></div>
@@ -153,7 +152,9 @@
     <button id="themeToggle" class="theme-btn">Dark</button>
 
     <!-- XLSX LIBRARY FOR EXCEL EXPORT -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"
+            integrity="sha512-4G3pXYtEkb1C9CFWQfHhnY0Ff3q2tFGgF7qd2p2kSYJwZ6a8q2d+kzD0jkGDJQGy/pLNoPLKQfwr+1rVYhYkw=="
+            crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
     <!-- MAIN SCRIPT -->
     <script src="script.js"></script>

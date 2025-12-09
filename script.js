@@ -59,7 +59,7 @@ const DEFAULT_META = {
     researcher: "Frank Drauschke",
     contact: "research@drauschke.de",
     episodeLabel: "",
-    fps: 30   // добавяме fps, за да може да се използва
+    fps: 30
 };
 
 const SUMMARY_WEBAPP_URL =
@@ -94,10 +94,10 @@ function setCurrentSheetMeta(meta) {
     currentSheetMeta = Object.assign({}, DEFAULT_META, meta || {});
     renderHeaderInfo();
 }
-
 function renderHeaderInfo() {
     const meta = currentSheetMeta;
     const ids = ["headerInfoHome", "headerInfoArchives", "headerInfoSummary"];
+
     ids.forEach(id => {
         const el = document.getElementById(id);
         if (!el) return;
@@ -248,7 +248,7 @@ function initArchiveUI() {
 }
 
 /*************************************************
- * CONNECTION + DATA LOADING
+ * CONNECT + LOAD DATA (ARCHIVES)
  *************************************************/
 function testConnection() {
     const input = document.getElementById("sheetUrlInput");
@@ -317,7 +317,7 @@ async function refreshData() {
 }
 
 /*************************************************
- * PROCESSING ARCHIVE ROWS
+ * ARCHIVE PROCESSING
  *************************************************/
 function processRows(rows) {
     const map = new Map();
@@ -352,28 +352,9 @@ function processRows(rows) {
             entries: a.clips.length
         };
     });
-
-    filteredData = archiveData.slice();
-    buildArchiveDropdown();
-    renderTables(filteredData);
-}
-
 /*************************************************
  * FILTERS
  *************************************************/
-function buildArchiveDropdown() {
-    const sel = document.getElementById("filterArchive");
-    if (!sel) return;
-
-    sel.innerHTML = `<option value="all">All archives</option>`;
-    archiveData.forEach(a => {
-        const o = document.createElement("option");
-        o.value = a.name;
-        o.textContent = a.name;
-        sel.appendChild(o);
-    });
-}
-
 function applyFilters() {
     const termEl = document.getElementById("searchInput");
     const arcEl = document.getElementById("filterArchive");
@@ -424,10 +405,10 @@ function resetFilters() {
 }
 
 /*************************************************
- * TIME-CODE PROCESSING — REPLACED (FULL TCSUM LOGIC)
+ * TIME-CODE — FULL TCSUM LOGIC (ARCHIVES)
  *************************************************/
 
-// Auto FPS detection (matches Sheets logic)
+// Auto FPS detection (Sheets logic)
 function detectFPS(fpsValue) {
     if (!fpsValue || fpsValue.toString().trim() === "") return 30;
 
@@ -442,6 +423,7 @@ function detectFPS(fpsValue) {
 
 let FPS = 30;
 
+// Convert TC → frames
 function tcToFrames(tc, fps = FPS) {
     if (tc === null || tc === undefined) return 0;
 
@@ -465,6 +447,7 @@ function tcToFrames(tc, fps = FPS) {
     return isNegative ? -frames : frames;
 }
 
+// Frames → TC
 function framesToTc(frames, fps = FPS) {
     if (!frames || isNaN(frames)) return "00:00:00:00";
 
@@ -491,6 +474,7 @@ function framesToTc(frames, fps = FPS) {
     );
 }
 
+// SUM durations for ARCHIVES only
 function sumDurations(list, fpsValue = null) {
     FPS = detectFPS(fpsValue);
 
@@ -501,66 +485,6 @@ function sumDurations(list, fpsValue = null) {
     return framesToTc(totalFrames, FPS);
 }
 
-/*************************************************
- * RENDER TABLES
- *************************************************/
-function renderTables(data) {
-    const container = document.getElementById("archiveTables");
-    if (!container) return;
-
-    if (!data || !data.length) {
-        container.innerHTML = `<div class="loading-box">No archives match your filters.</div>`;
-        return;
-    }
-
-    let html = "";
-
-    data.forEach(a => {
-        html += `
-        <div class="archive-section">
-            <div class="archive-title">
-                <span>${a.name}</span>
-                <span>${a.entries} clips • Total: ${a.totalDuration}</span>
-            </div>
-            <table class="archive-table">
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>ID</th>
-                        <th>Inv No</th>
-                        <th>File Name</th>
-                        <th>Source In</th>
-                        <th>Source Out</th>
-                        <th>Duration</th>
-                        <th>Link</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${a.clips.map((c, i) => `
-                        <tr>
-                            <td>${i + 1}</td>
-                            <td>${c.id || ""}</td>
-                            <td>${c.inv || ""}</td>
-                            <td style="max-width:380px;white-space:normal;">${c.file || ""}</td>
-                            <td>${c.sin || ""}</td>
-                            <td>${c.sout || ""}</td>
-                            <td class="duration-cell">${c.dur || ""}</td>
-                            <td>${c.link ? `<a href="${c.link}" target="_blank">Link</a>` : ""}</td>
-                        </tr>
-                    `).join("")}
-                    <tr class="total-row">
-                        <td colspan="6"><strong>Total</strong></td>
-                        <td><strong>${a.totalDuration}</strong></td>
-                        <td></td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-        `;
-    });
-
-    container.innerHTML = html;
-}
 
 /*************************************************
  * COPY HTML
@@ -666,12 +590,45 @@ function downloadSummaryExcel() {
     });
 
     const epCfg = SUMMARY_EPISODES[currentSummaryEpisode] || { label: "episode" };
-    XLSX.writeFile(wb, `summary_${epCfg.label.replace(/[^a-z0-9]/gi, "_")}.xlsx`);
+    XLSX.writeFile(
+        wb,
+        `summary_${epCfg.label.replace(/[^a-z0-9]/gi, "_")}.xlsx`
+    );
 }
 
 /*************************************************
- * SUMMARY PAGE
+ * SUMMARY PAGE  — FIXED (100% SAME AS GOOGLE SHEETS)
  *************************************************/
+
+// NEW — detect if TC is:
+// A) HH:MM:SS:FF
+// B) raw frames (12345)
+// C) seconds.float (59.28)
+// → convert ALL to frames
+function parseSummaryTC(val) {
+    if (!val) return 0;
+
+    const txt = val.toString().trim();
+
+    // TRUE TC format
+    if (/^\d\d:\d\d:\d\d:\d\d$/.test(txt)) {
+        return tcToFrames(txt, 30);
+    }
+
+    // raw frames
+    if (/^\d+$/.test(txt)) {
+        return parseInt(txt, 10);
+    }
+
+    // seconds.float
+    if (/^\d+[.,]\d+$/.test(txt)) {
+        const sec = parseFloat(txt.replace(",", "."));
+        return Math.round(sec * 30);
+    }
+
+    return 0;
+}
+
 function initSummaryPage() {
     const select = document.getElementById("summaryEpisodeSelect");
     if (!select) return;
@@ -680,19 +637,14 @@ function initSummaryPage() {
 
     select.addEventListener("change", () => {
         currentSummaryEpisode = select.value;
-        if (summaryLoaded) {
-            renderSummaryForEpisode(currentSummaryEpisode);
-        }
+        if (summaryLoaded) renderSummaryForEpisode(currentSummaryEpisode);
     });
 
-    const btnCopy = document.getElementById("btnSummaryCopy");
-    if (btnCopy) {
-        btnCopy.onclick = () =>
-            copyContainerAsHtml("headerInfoSummary", "summary-main-export");
-    }
+    document.getElementById("btnSummaryCopy").onclick =
+        () => copyContainerAsHtml("headerInfoSummary", "summary-main-export");
 
-    const btnExcel = document.getElementById("btnSummaryExcel");
-    if (btnExcel) btnExcel.onclick = downloadSummaryExcel;
+    document.getElementById("btnSummaryExcel").onclick =
+        downloadSummaryExcel;
 
     loadSummaryData();
 }
@@ -701,7 +653,7 @@ async function loadSummaryData() {
     const statsContainer = document.getElementById("statistics-table");
     if (statsContainer) {
         statsContainer.innerHTML =
-            `<div class="loading-box">Loading Summary data from Google Apps Script…</div>`;
+            `<div class="loading-box">Loading Summary data...</div>`;
     }
 
     try {
@@ -709,11 +661,7 @@ async function loadSummaryData() {
         const resp = await fetch(url, { headers: { "Accept": "application/json" } });
         const data = await resp.json();
 
-        if (!Array.isArray(data) || !data.length) {
-            throw new Error("No summary data returned.");
-        }
-
-        summaryRows = data;
+        summaryRows = Array.isArray(data) ? data : [];
         summaryLoaded = true;
 
         renderSummaryForEpisode(currentSummaryEpisode);
@@ -723,15 +671,9 @@ async function loadSummaryData() {
         console.error(err);
         if (statsContainer) {
             statsContainer.innerHTML =
-                `<div class="loading-box">Error while loading Summary data: ${err.message}</div>`;
+                `<div class="loading-box">Error loading Summary data</div>`;
         }
     }
-}
-
-function safeNumber(val) {
-    if (val === null || val === undefined) return 0;
-    const n = parseFloat(val.toString().replace(",", "."));
-    return isNaN(n) ? 0 : n;
 }
 
 function renderSummaryForEpisode(epKey) {
@@ -741,12 +683,12 @@ function renderSummaryForEpisode(epKey) {
 
     const rows = summaryRows.filter(r => {
         const name = r[SUMMARY_ARCHIVE_COL];
-        return name !== null && name !== undefined && name.toString().trim() !== "";
+        return name && name.toString().trim() !== "";
     });
 
     if (!rows.length) {
         statsContainer.innerHTML =
-            `<div class="loading-box">No rows in Summary for this episode.</div>`;
+            `<div class="loading-box">No rows for this episode</div>`;
         return;
     }
 
@@ -757,11 +699,15 @@ function renderSummaryForEpisode(epKey) {
 
     rows.forEach((r, idx) => {
         const archiveName = r[SUMMARY_ARCHIVE_COL] || "";
+
         const stills = safeNumber(r[cfg.stillsCol]);
         const clips = safeNumber(r[cfg.clipsCol]);
-        const tcRaw = r[cfg.tcCol] || "";
-        const tcStr = tcRaw ? tcRaw.toString() : "";
-        const frames = tcToFrames(tcStr, currentSheetMeta.fps);
+
+        const rawTC = r[cfg.tcCol] || "";
+        const tcStr = rawTC.toString();
+
+        // FIX — do NOT double-sum TC
+        const frames = parseSummaryTC(tcStr);
 
         totalStills += stills;
         totalClips += clips;
@@ -778,7 +724,7 @@ function renderSummaryForEpisode(epKey) {
         `;
     });
 
-    const totalTc = framesToTc(totalFrames, currentSheetMeta.fps);
+    const totalTc = framesToTc(totalFrames, 30);
 
     statsContainer.innerHTML = `
         <div class="archive-section">
@@ -812,76 +758,12 @@ function renderSummaryForEpisode(epKey) {
     renderPricingTable(totalStills);
 }
 
-function renderPricingTable(totalStills) {
-    const container = document.getElementById("pricing-table");
-    if (!container) return;
-
-    container.innerHTML = `
-        <table>
-            <tbody>
-                <tr>
-                    <th>Metric</th>
-                    <th>Value</th>
-                </tr>
-                <tr>
-                    <td>Total stills</td>
-                    <td id="pricingTotalStills" data-stills="${totalStills}">${totalStills}</td>
-                </tr>
-                <tr>
-                    <td>Cost per still</td>
-                    <td>
-                        <input id="pricingCostPerStill" type="number" min="0" step="0.01" value="0">
-                    </td>
-                </tr>
-                <tr>
-                    <td>Total stills cost</td>
-                    <td id="pricingStillsCost">0.00</td>
-                </tr>
-                <tr>
-                    <td>Extra costs</td>
-                    <td>
-                        <input id="pricingExtraCosts" type="number" step="0.01" value="0">
-                    </td>
-                </tr>
-                <tr class="pricing-total-row">
-                    <td>Total calculated cost</td>
-                    <td id="pricingTotalCost">0.00</td>
-                </tr>
-            </tbody>
-        </table>
-    `;
-
-    const costInput = document.getElementById("pricingCostPerStill");
-    const extraInput = document.getElementById("pricingExtraCosts");
-    const stillsCostEl = document.getElementById("pricingStillsCost");
-    const totalCostEl = document.getElementById("pricingTotalCost");
-    const stillsEl = document.getElementById("pricingTotalStills");
-
-    const recalc = () => {
-        const stills = safeNumber(stillsEl.dataset.stills || 0);
-        const costPerStill = safeNumber(costInput.value || 0);
-        const extra = safeNumber(extraInput.value || 0);
-
-        const stillsCost = stills * costPerStill;
-        const total = stillsCost + extra;
-
-        stillsCostEl.textContent = stillsCost.toFixed(2);
-        totalCostEl.textContent = total.toFixed(2);
-    };
-
-    costInput.addEventListener("input", recalc);
-    extraInput.addEventListener("input", recalc);
-}
-
-/*************************************************
- * RAW SUMMARY
- *************************************************/
 function renderRawSummary() {
     const container = document.getElementById("summary-raw");
     if (!container) return;
 
     if (!summaryRows.length) {
-        container.innerHTML = `<div class="loading-box">No rows in Summary sheet.</div>`;
+        container.innerHTML = `<div class="loading-box">No rows.</div>`;
         return;
     }
 
@@ -916,3 +798,8 @@ document.addEventListener("DOMContentLoaded", () => {
     setCurrentSheetMeta(DEFAULT_META);
     initSummaryPage();
 });
+
+    filteredData = archiveData.slice();
+    buildArchiveDropdown();
+    renderTables(filteredData);
+}

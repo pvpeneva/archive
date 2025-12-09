@@ -4,25 +4,21 @@
  * PAGE ROUTER
  *************************************************/
 function showPage(page) {
-    // hide all pages
     document.querySelectorAll(".page").forEach(p => {
         p.style.display = "none";
         p.classList.remove("active");
     });
 
-    // show selected
     const target = document.getElementById("page-" + page);
     if (target) {
         target.style.display = "block";
         target.classList.add("active");
     }
 
-    // update nav
     document.querySelectorAll(".nav-links a").forEach(a => a.classList.remove("active"));
     const nav = document.getElementById("nav-" + page);
     if (nav) nav.classList.add("active");
 
-    // remember last
     localStorage.setItem("lastPage", page);
 }
 
@@ -49,7 +45,7 @@ function initThemeToggle() {
 }
 
 /*************************************************
- * GLOBAL STATE (archives + header)
+ * GLOBAL STATE
  *************************************************/
 let connectedUrl = "";
 let archiveData = [];
@@ -57,58 +53,26 @@ let filteredData = [];
 let allSheetsConfig = [];
 let currentSheetMeta = null;
 
-// default header info – used if some fields are missing
 const DEFAULT_META = {
     production: "Michael W. King Productions, LLC., USA",
     project: "The Rescuers",
     researcher: "Frank Drauschke",
     contact: "research@drauschke.de",
-    episodeLabel: ""
+    episodeLabel: "",
+    fps: 30   // добавяме fps, за да може да се използва
 };
 
-// SUMMARY WEBAPP (от теб)
 const SUMMARY_WEBAPP_URL =
     "https://script.google.com/macros/s/AKfycbyXaGpw4aVA_3fh8_GBrih9_Kj6loNHQ7dKKDGnIA83E2U1IfvRADgLWT8i_GKSA8TeAw/exec";
 
-// SUMMARY CONFIG – колони в Summary таба
 const SUMMARY_ARCHIVE_COL = "Archive / Librarie";
 
 const SUMMARY_EPISODES = {
-    duckwitz: {
-        key: "duckwitz",
-        label: "Duckwitz",
-        stillsCol: "01_Duckwitz_St",
-        clipsCol: "01_D_clips",
-        tcCol: "01_Duckwitz_TC"
-    },
-    alice: {
-        key: "alice",
-        label: "Alice",
-        stillsCol: "02_Alice_St",
-        clipsCol: "02_Alice_clips",
-        tcCol: "02_Alice_TC"
-    },
-    law1: {
-        key: "law1",
-        label: "LAW 1",
-        stillsCol: "03_LAW1_St",
-        clipsCol: "03_LAW1_clips",
-        tcCol: "03_LAW1_TC"
-    },
-    law2: {
-        key: "law2",
-        label: "LAW 2",
-        stillsCol: "04_LAW2_St",
-        clipsCol: "04_LAW2_clips",
-        tcCol: "04_LAW2_TC"
-    },
-    frybing: {
-        key: "frybing",
-        label: "Fry/Bing",
-        stillsCol: "05_FRY/BING EDL_St",
-        clipsCol: "05_FRY/BING EDL_clips",
-        tcCol: "05_FRY/BING EDL_TC"
-    }
+    duckwitz: { key: "duckwitz", label: "Duckwitz", stillsCol: "01_Duckwitz_St", clipsCol: "01_D_clips", tcCol: "01_Duckwitz_TC" },
+    alice: { key: "alice", label: "Alice", stillsCol: "02_Alice_St", clipsCol: "02_Alice_clips", tcCol: "02_Alice_TC" },
+    law1: { key: "law1", label: "LAW 1", stillsCol: "03_LAW1_St", clipsCol: "03_LAW1_clips", tcCol: "03_LAW1_TC" },
+    law2: { key: "law2", label: "LAW 2", stillsCol: "04_LAW2_St", clipsCol: "04_LAW2_clips", tcCol: "04_LAW2_TC" },
+    frybing: { key: "frybing", label: "Fry/Bing", stillsCol: "05_FRY/BING EDL_St", clipsCol: "05_FRY/BING EDL_clips", tcCol: "05_FRY/BING EDL_TC" }
 };
 
 let summaryRows = [];
@@ -116,7 +80,7 @@ let summaryLoaded = false;
 let currentSummaryEpisode = "duckwitz";
 
 /*************************************************
- * HEADER RENDERING
+ * HEADER
  *************************************************/
 function makeEpisodeLabel(sheet) {
     if (!sheet || !sheet.episode) return "";
@@ -162,7 +126,7 @@ function renderHeaderInfo() {
 }
 
 /*************************************************
- * SIDEBAR – LOAD SHEETS FROM sheets-config.json
+ * SIDEBAR
  *************************************************/
 async function loadSidebarSheets() {
     const list = document.getElementById("sidebarSheets");
@@ -184,10 +148,7 @@ async function loadSidebarSheets() {
             li.addEventListener("click", () => onSelectSheetFromSidebar(sheet, li));
             list.appendChild(li);
 
-            // auto-select first sheet
-            if (index === 0) {
-                onSelectSheetFromSidebar(sheet, li, true);
-            }
+            if (index === 0) onSelectSheetFromSidebar(sheet, li, true);
         });
 
     } catch (err) {
@@ -197,39 +158,31 @@ async function loadSidebarSheets() {
 }
 
 function onSelectSheetFromSidebar(sheet, li, silentAuto) {
-    // active state
     document.querySelectorAll(".sidebar-item").forEach(item => item.classList.remove("sidebar-active"));
     if (li) li.classList.add("sidebar-active");
 
-    // connected URL and input
     connectedUrl = sheet.url || "";
     const input = document.getElementById("sheetUrlInput");
     if (input) input.value = connectedUrl;
 
-    // header info
     const episodeLabel = makeEpisodeLabel(sheet);
     setCurrentSheetMeta({
         production: sheet.production,
         project: sheet.project,
         researcher: sheet.researcher,
         contact: sheet.contact,
-        episodeLabel: episodeLabel
+        episodeLabel: episodeLabel,
+        fps: sheet.fps || 30
     });
 
-    // status text
     const statusEl = document.getElementById("connectStatus");
-    if (statusEl) {
-        statusEl.textContent = "Status: Ready (" + (sheet.name || "Sheet") + ")";
-    }
+    if (statusEl) statusEl.textContent = "Status: Ready (" + (sheet.name || "Sheet") + ")";
 
-    // if user clicked (not auto) – load data
-    if (!silentAuto) {
-        refreshData();
-    }
+    if (!silentAuto) refreshData();
 }
 
 /*************************************************
- * ARCHIVE UI – BUILD STATIC PART
+ * ARCHIVE UI
  *************************************************/
 function initArchiveUI() {
     const container = document.getElementById("archives-content");
@@ -283,7 +236,6 @@ function initArchiveUI() {
         <div id="archiveTables" style="margin-top:25px;"></div>
     `;
 
-    // wire buttons
     document.getElementById("btnTest").onclick = testConnection;
     document.getElementById("btnConnect").onclick = connectToSheet;
     document.getElementById("btnRefresh").onclick = refreshData;
@@ -296,7 +248,7 @@ function initArchiveUI() {
 }
 
 /*************************************************
- * CONNECTION + DATA LOADING (ARCHIVES)
+ * CONNECTION + DATA LOADING
  *************************************************/
 function testConnection() {
     const input = document.getElementById("sheetUrlInput");
@@ -318,10 +270,7 @@ function connectToSheet() {
     }
     connectedUrl = url;
 
-    // if user connects manually, we still set default header
-    if (!currentSheetMeta) {
-        setCurrentSheetMeta(DEFAULT_META);
-    }
+    if (!currentSheetMeta) setCurrentSheetMeta(DEFAULT_META);
 
     const statusEl = document.getElementById("connectStatus");
     if (statusEl) statusEl.textContent = "Status: Connected (click Refresh)";
@@ -368,7 +317,7 @@ async function refreshData() {
 }
 
 /*************************************************
- * PROCESS DATA (ARCHIVES)
+ * PROCESSING ARCHIVE ROWS
  *************************************************/
 function processRows(rows) {
     const map = new Map();
@@ -394,12 +343,12 @@ function processRows(rows) {
     });
 
     archiveData = Array.from(map.values()).map(a => {
-        const total = sumDurations(a.durations);
+        const total = sumDurations(a.durations, currentSheetMeta.fps);
         return {
             name: a.name,
             clips: a.clips,
             totalDuration: total,
-            totalFrames: tcToFrames(total),
+            totalFrames: tcToFrames(total, currentSheetMeta.fps),
             entries: a.clips.length
         };
     });
@@ -410,7 +359,7 @@ function processRows(rows) {
 }
 
 /*************************************************
- * FILTERS + SORT (ARCHIVES)
+ * FILTERS
  *************************************************/
 function buildArchiveDropdown() {
     const sel = document.getElementById("filterArchive");
@@ -475,35 +424,85 @@ function resetFilters() {
 }
 
 /*************************************************
- * TIME-CODE HELPERS
+ * TIME-CODE PROCESSING — REPLACED (FULL TCSUM LOGIC)
  *************************************************/
-function tcToFrames(tc, fps = 25) {
-    if (!tc) return 0;
-    const parts = tc.toString().split(":").map(n => parseInt(n, 10) || 0);
-    const h = parts[0] || 0;
-    const m = parts[1] || 0;
-    const s = parts[2] || 0;
-    const f = parts[3] || 0;
-    return h * 3600 * fps + m * 60 * fps + s * fps + f;
+
+// Auto FPS detection (matches Sheets logic)
+function detectFPS(fpsValue) {
+    if (!fpsValue || fpsValue.toString().trim() === "") return 30;
+
+    let fps_raw = fpsValue.toString().trim();
+    let fps_token = fps_raw.match(/\d+[.,]?\d*/) ? fps_raw.match(/\d+[.,]?\d*/)[0] : fps_raw;
+
+    let fps_norm = fps_token.replace(",", ".").replace(";", ".");
+    let fps_num = parseFloat(fps_norm);
+
+    return isNaN(fps_num) ? 30 : fps_num;
 }
 
-function framesToTc(frames, fps = 25) {
-    if (!frames) return "00:00:00:00";
-    const h = Math.floor(frames / (3600 * fps));
-    const m = Math.floor((frames % (3600 * fps)) / (60 * fps));
-    const s = Math.floor((frames % (60 * fps)) / fps);
-    const f = frames % fps;
-    const z = n => String(n).padStart(2, "0");
-    return `${z(h)}:${z(m)}:${z(s)}:${z(f)}`;
+let FPS = 30;
+
+function tcToFrames(tc, fps = FPS) {
+    if (tc === null || tc === undefined) return 0;
+
+    let txt = tc.toString().trim();
+    if (!txt) return 0;
+
+    const isNegative = /^-|\(/.test(txt);
+
+    let clean = txt.replace(/[^0-9:]/g, "");
+    if (!clean) return 0;
+
+    let parts = clean.split(":").map(x => parseInt(x, 10) || 0);
+
+    let h = parts[0] || 0;
+    let m = parts[1] || 0;
+    let s = parts[2] || 0;
+    let f = parts[3] || 0;
+
+    let frames = h * 3600 * fps + m * 60 * fps + s * fps + f;
+
+    return isNegative ? -frames : frames;
 }
 
-function sumDurations(list) {
-    const totalFrames = (list || []).reduce((sum, tc) => sum + tcToFrames(tc), 0);
-    return framesToTc(totalFrames);
+function framesToTc(frames, fps = FPS) {
+    if (!frames || isNaN(frames)) return "00:00:00:00";
+
+    let sign = frames < 0 ? "-" : "";
+    let df = Math.abs(Math.round(frames));
+
+    let hours = Math.floor(df / (3600 * fps));
+    let rem_h = df % (3600 * fps);
+
+    let minutes = Math.floor(rem_h / (60 * fps));
+    let rem_m = rem_h % (60 * fps);
+
+    let seconds = Math.floor(rem_m / fps);
+    let f = rem_m % fps;
+
+    let z = n => String(n).padStart(2, "0");
+
+    return (
+        sign +
+        z(hours) + ":" +
+        z(minutes) + ":" +
+        z(seconds) + ":" +
+        z(f)
+    );
+}
+
+function sumDurations(list, fpsValue = null) {
+    FPS = detectFPS(fpsValue);
+
+    const totalFrames = (list || []).reduce((sum, tc) => {
+        return sum + tcToFrames(tc, FPS);
+    }, 0);
+
+    return framesToTc(totalFrames, FPS);
 }
 
 /*************************************************
- * RENDER TABLES (ARCHIVES)
+ * RENDER TABLES
  *************************************************/
 function renderTables(data) {
     const container = document.getElementById("archiveTables");
@@ -564,7 +563,7 @@ function renderTables(data) {
 }
 
 /*************************************************
- * GENERIC COPY AS HTML (header + tables)
+ * COPY HTML
  *************************************************/
 async function copyContainerAsHtml(headerId, mainId) {
     const mainEl = document.getElementById(mainId);
@@ -600,7 +599,6 @@ async function copyContainerAsHtml(headerId, mainId) {
         }
     }
 
-    // fallback – текст
     const ta = document.createElement("textarea");
     ta.value = plainText;
     ta.style.position = "fixed";
@@ -623,7 +621,7 @@ function stripHtml(html) {
 }
 
 /*************************************************
- * EXCEL EXPORT HELPERS (ARCHIVES + SUMMARY)
+ * EXCEL EXPORT
  *************************************************/
 function downloadArchiveExcel() {
     if (typeof XLSX === "undefined") {
@@ -672,13 +670,12 @@ function downloadSummaryExcel() {
 }
 
 /*************************************************
- * SUMMARY PAGE – LOAD DATA & RENDER
+ * SUMMARY PAGE
  *************************************************/
 function initSummaryPage() {
     const select = document.getElementById("summaryEpisodeSelect");
     if (!select) return;
 
-    // just in case – ensure values match config
     select.value = currentSummaryEpisode;
 
     select.addEventListener("change", () => {
@@ -695,9 +692,7 @@ function initSummaryPage() {
     }
 
     const btnExcel = document.getElementById("btnSummaryExcel");
-    if (btnExcel) {
-        btnExcel.onclick = downloadSummaryExcel;
-    }
+    if (btnExcel) btnExcel.onclick = downloadSummaryExcel;
 
     loadSummaryData();
 }
@@ -766,7 +761,7 @@ function renderSummaryForEpisode(epKey) {
         const clips = safeNumber(r[cfg.clipsCol]);
         const tcRaw = r[cfg.tcCol] || "";
         const tcStr = tcRaw ? tcRaw.toString() : "";
-        const frames = tcToFrames(tcStr);
+        const frames = tcToFrames(tcStr, currentSheetMeta.fps);
 
         totalStills += stills;
         totalClips += clips;
@@ -783,7 +778,7 @@ function renderSummaryForEpisode(epKey) {
         `;
     });
 
-    const totalTc = framesToTc(totalFrames);
+    const totalTc = framesToTc(totalFrames, currentSheetMeta.fps);
 
     statsContainer.innerHTML = `
         <div class="archive-section">
@@ -879,7 +874,7 @@ function renderPricingTable(totalStills) {
 }
 
 /*************************************************
- * RAW SUMMARY VIEW
+ * RAW SUMMARY
  *************************************************/
 function renderRawSummary() {
     const container = document.getElementById("summary-raw");
@@ -909,23 +904,15 @@ function renderRawSummary() {
 }
 
 /*************************************************
- * INITIALISE EVERYTHING ON LOAD
+ * INITIALIZATION
  *************************************************/
 document.addEventListener("DOMContentLoaded", () => {
-    // router
     const last = localStorage.getItem("lastPage") || "home";
     showPage(last);
 
-    // theme
     initThemeToggle();
-
-    // archive UI + sidebar
     initArchiveUI();
     loadSidebarSheets();
-
-    // default header meta (used until user picks a sheet)
     setCurrentSheetMeta(DEFAULT_META);
-
-    // summary page
     initSummaryPage();
 });

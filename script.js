@@ -59,7 +59,7 @@ const DEFAULT_META = {
     researcher: "Frank Drauschke",
     contact: "research@drauschke.de",
     episodeLabel: "",
-    fps: 30   // добавяме fps, за да може да се използва
+    fps: 30
 };
 
 const SUMMARY_WEBAPP_URL =
@@ -427,7 +427,6 @@ function resetFilters() {
  * TIME-CODE PROCESSING — REPLACED (FULL TCSUM LOGIC)
  *************************************************/
 
-// Auto FPS detection (matches Sheets logic)
 function detectFPS(fpsValue) {
     if (!fpsValue || fpsValue.toString().trim() === "") return 30;
 
@@ -502,7 +501,7 @@ function sumDurations(list, fpsValue = null) {
 }
 
 /*************************************************
- * RENDER TABLES
+ * RENDER TABLES (ARCHIVES PAGE)
  *************************************************/
 function renderTables(data) {
     const container = document.getElementById("archiveTables");
@@ -734,14 +733,23 @@ function safeNumber(val) {
     return isNaN(n) ? 0 : n;
 }
 
+function isTotalLabel(text) {
+    return String(text ?? "").trim().toLowerCase() === "total";
+}
+
 function renderSummaryForEpisode(epKey) {
     const cfg = SUMMARY_EPISODES[epKey];
     const statsContainer = document.getElementById("statistics-table");
     if (!cfg || !statsContainer) return;
 
+    // ✅ FIX: ignore empty rows AND ignore the sheet's own "Total" row
     const rows = summaryRows.filter(r => {
         const name = r[SUMMARY_ARCHIVE_COL];
-        return name !== null && name !== undefined && name.toString().trim() !== "";
+        if (name === null || name === undefined) return false;
+        const trimmed = name.toString().trim();
+        if (!trimmed) return false;
+        if (isTotalLabel(trimmed)) return false; // <-- IMPORTANT FIX
+        return true;
     });
 
     if (!rows.length) {
@@ -885,8 +893,11 @@ function renderRawSummary() {
         return;
     }
 
+    // ✅ Also skip the sheet "Total" row here (so it doesn't repeat)
+    const usable = summaryRows.filter(r => !isTotalLabel(r[SUMMARY_ARCHIVE_COL]));
+
     let html = "";
-    summaryRows.slice(0, 120).forEach(r => {
+    usable.slice(0, 120).forEach(r => {
         const name = r[SUMMARY_ARCHIVE_COL] || "";
         const clips = r["clips"] || r["Clips"] || "";
         const tc = r["total TC"] || r["Total TC"] || "";

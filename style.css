@@ -197,7 +197,6 @@ body {
    ARCHIVES LAYOUT (SIDEBAR + CONTENT)
 ============================================================ */
 
-/* wrapper вътре в page-archives */
 .archives-layout {
     display: flex;
     align-items: flex-start;
@@ -532,7 +531,7 @@ body {
     margin-bottom: 10px;
 }
 
-/* SUMMARY CARDS (може да не ги ползваш, но ги оставям) */
+/* SUMMARY CARDS */
 
 .summary-cards {
     display: grid;
@@ -643,42 +642,41 @@ body {
 }
 
 /* ============================================================
-   SUMMARY – CONTROLS (EPISODE SELECT + ACTIONS)
+   SUMMARY TOP BAR
 ============================================================ */
 
-.summary-controls {
+.summary-top-bar {
     display: flex;
     flex-wrap: wrap;
-    justify-content: space-between;
     align-items: flex-end;
+    justify-content: space-between;
     gap: 16px;
-    margin: 10px 0 20px;
+    margin-bottom: 20px;
+    padding: 14px 18px;
+    background: rgba(0,0,0,0.02);
+    border-radius: 12px;
+    border: 1px solid var(--card-border);
 }
 
-.summary-episode-select {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-}
-
-.summary-episode-select label {
+.summary-top-bar label {
     font-size: 0.8rem;
     font-weight: 600;
     text-transform: uppercase;
     color: var(--muted);
+    margin-bottom: 4px;
+    display: block;
 }
 
-.summary-episode-select select {
-    padding: 9px 11px;
-    border-radius: 10px;
+.summary-episode select {
+    padding: 8px 10px;
+    border-radius: 8px;
     border: 1px solid var(--card-border);
-    min-width: 200px;
-    font-size: 0.95rem;
     background: var(--card-bg);
     color: var(--text);
+    min-width: 180px;
 }
 
-.summary-episode-select select:focus {
+.summary-episode select:focus {
     outline: none;
     border-color: var(--primary);
     box-shadow: 0 0 0 3px rgba(102,126,234,0.20);
@@ -686,8 +684,13 @@ body {
 
 .summary-actions {
     display: flex;
-    flex-wrap: wrap;
     gap: 10px;
+    flex-wrap: wrap;
+}
+
+.summary-actions .archive-btn {
+    padding: 9px 14px;
+    font-size: 0.9rem;
 }
 
 /* малко spacing за таблицата със статистика */
@@ -696,10 +699,10 @@ body {
 }
 
 /* ============================================================
-   THEME TOGGLE BUTTON
+   THEME TOGGLE BUTTON (FIXED)
 ============================================================ */
 
-.theme-toggle {
+#themeToggle.theme-btn {
     position: fixed;
     bottom: 20px;
     right: 20px;
@@ -715,7 +718,7 @@ body {
     z-index: 2000;
 }
 
-.theme-toggle:hover {
+#themeToggle.theme-btn:hover {
     background: var(--primary-hover);
 }
 
@@ -768,55 +771,3 @@ body {
         grid-template-columns: 1fr;
     }
 }
-/* ============================================================
-   SUMMARY TOP BAR
-============================================================ */
-
-.summary-top-bar {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: flex-end;
-    justify-content: space-between;
-    gap: 16px;
-    margin-bottom: 20px;
-    padding: 14px 18px;
-    background: rgba(0,0,0,0.02);
-    border-radius: 12px;
-    border: 1px solid var(--card-border);
-}
-
-.summary-top-bar label {
-    font-size: 0.8rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    color: var(--muted);
-    margin-bottom: 4px;
-    display: block;
-}
-
-.summary-episode select {
-    padding: 8px 10px;
-    border-radius: 8px;
-    border: 1px solid var(--card-border);
-    background: var(--card-bg);
-    color: var(--text);
-    min-width: 180px;
-}
-
-.summary-episode select:focus {
-    outline: none;
-    border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(102,126,234,0.20);
-}
-
-.summary-actions {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-}
-
-.summary-actions .archive-btn {
-    padding: 9px 14px;
-    font-size: 0.9rem;
-}
-)

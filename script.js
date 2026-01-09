@@ -65,26 +65,22 @@ const DEFAULT_META = {
 const SUMMARY_WEBAPP_URL =
     "https://script.google.com/macros/s/AKfycbyXaGpw4aVA_3fh8_GBrih9_Kj6loNHQ7dKKDGnIA83E2U1IfvRADgLWT8i_GKSA8TeAw/exec";
 
+// If you renamed this column in your sheet, change the string here:
 const SUMMARY_ARCHIVE_COL = "Archive / Librarie";
 
 /**
  * ✅ UPDATED to match your NEW sheet column headers
- * New stills/clips columns:
- * 01_#stills, 01_#clips
- * 02_#stills, 02_#clips
- * 03_#stills, 03_#clips
- * 04_#stills, 04_#clips
- * 05_#stills, 05_#clips
- *
- * Timecode columns remain:
+ * Stills/Clips are now:
+ * 01_#stills / 01_#clips, 02_#stills / 02_#clips, ...
+ * Timecode columns stay as:
  * 01_Duckwitz_TC, 02_Alice_TC, 03_LAW1_TC, 04_LAW2_TC, 05_FRY/BING EDL_TC
  */
 const SUMMARY_EPISODES = {
     duckwitz: { key: "duckwitz", label: "Duckwitz", stillsCol: "01_#stills", clipsCol: "01_#clips", tcCol: "01_Duckwitz_TC" },
-    alice:    { key: "alice",    label: "Alice",    stillsCol: "02_#stills", clipsCol: "02_#clips", tcCol: "02_Alice_TC" },
-    law1:     { key: "law1",     label: "LAW 1",    stillsCol: "03_#stills", clipsCol: "03_#clips", tcCol: "03_LAW1_TC" },
-    law2:     { key: "law2",     label: "LAW 2",    stillsCol: "04_#stills", clipsCol: "04_#clips", tcCol: "04_LAW2_TC" },
-    frybing:  { key: "frybing",  label: "Fry/Bing", stillsCol: "05_#stills", clipsCol: "05_#clips", tcCol: "05_FRY/BING EDL_TC" }
+    alice: { key: "alice", label: "Alice", stillsCol: "02_#stills", clipsCol: "02_#clips", tcCol: "02_Alice_TC" },
+    law1: { key: "law1", label: "LAW 1", stillsCol: "03_#stills", clipsCol: "03_#clips", tcCol: "03_LAW1_TC" },
+    law2: { key: "law2", label: "LAW 2", stillsCol: "04_#stills", clipsCol: "04_#clips", tcCol: "04_LAW2_TC" },
+    frybing: { key: "frybing", label: "Fry/Bing", stillsCol: "05_#stills", clipsCol: "05_#clips", tcCol: "05_FRY/BING EDL_TC" }
 };
 
 let summaryRows = [];
@@ -438,7 +434,6 @@ function resetFilters() {
 /*************************************************
  * TIME-CODE PROCESSING — REPLACED (FULL TCSUM LOGIC)
  *************************************************/
-
 function detectFPS(fpsValue) {
     if (!fpsValue || fpsValue.toString().trim() === "") return 30;
 
@@ -681,6 +676,131 @@ function downloadSummaryExcel() {
 }
 
 /*************************************************
+ * SUMMARY HELPERS
+ *************************************************/
+function safeNumber(val) {
+    if (val === null || val === undefined) return 0;
+    const n = parseFloat(val.toString().replace(",", "."));
+    return isNaN(n) ? 0 : n;
+}
+
+function isTotalLabel(text) {
+    return String(text ?? "").trim().toLowerCase() === "total";
+}
+
+function getUsableSummaryRows() {
+    return summaryRows.filter(r => {
+        const name = r[SUMMARY_ARCHIVE_COL];
+        if (name === null || name === undefined) return false;
+        const trimmed = name.toString().trim();
+        if (!trimmed) return false;
+        if (isTotalLabel(trimmed)) return false;
+        return true;
+    });
+}
+
+// Create/insert the Episode Totals block without changing index.html
+function ensureEpisodeTotalsBlock() {
+    const main = document.getElementById("summary-main-export");
+    if (!main) return null;
+
+    let box = document.getElementById("episode-totals");
+    if (box) return box;
+
+    // Build wrapper: <h3>Episode Totals</h3> + <div id="episode-totals"></div>
+    const h3 = document.createElement("h3");
+    h3.textContent = "Episode Totals";
+
+    box = document.createElement("div");
+    box.id = "episode-totals";
+
+    // Insert it BEFORE the Pricing heading if possible
+    const pricingDiv = document.getElementById("pricing-table");
+    const pricingH3 = pricingDiv ? pricingDiv.previousElementSibling : null;
+
+    if (pricingH3 && pricingH3.tagName === "H3") {
+        main.insertBefore(box, pricingH3);
+        main.insertBefore(h3, box);
+    } else {
+        main.appendChild(h3);
+        main.appendChild(box);
+    }
+
+    return box;
+}
+
+function renderEpisodeTotalsOverview() {
+    const container = ensureEpisodeTotalsBlock();
+    if (!container) return;
+
+    if (!summaryRows.length) {
+        container.innerHTML = `<div class="loading-box">No Summary data yet.</div>`;
+        return;
+    }
+
+    const rows = getUsableSummaryRows();
+    const fps = (currentSheetMeta && currentSheetMeta.fps) ? currentSheetMeta.fps : 30;
+
+    const episodeKeys = Object.keys(SUMMARY_EPISODES);
+    let body = "";
+
+    episodeKeys.forEach((k, idx) => {
+        const cfg = SUMMARY_EPISODES[k];
+
+        let stillsTotal = 0;
+        let clipsTotal = 0;
+        let framesTotal = 0;
+
+        rows.forEach(r => {
+            stillsTotal += safeNumber(r[cfg.stillsCol]);
+            clipsTotal += safeNumber(r[cfg.clipsCol]);
+
+            const tcRaw = r[cfg.tcCol] || "";
+            const tcStr = tcRaw ? tcRaw.toString() : "";
+            framesTotal += tcToFrames(tcStr, fps);
+        });
+
+        const totalTc = framesToTc(framesTotal, fps);
+        const seconds = Math.round(Math.abs(framesTotal) / fps);
+
+        body += `
+          <tr>
+            <td>${idx + 1}</td>
+            <td><strong>${cfg.label}</strong></td>
+            <td>${stillsTotal}</td>
+            <td>${clipsTotal}</td>
+            <td class="duration-cell">${totalTc}</td>
+            <td>${seconds}</td>
+          </tr>
+        `;
+    });
+
+    container.innerHTML = `
+      <div class="archive-section" style="margin-top:0;">
+        <div class="archive-title">
+          <span>All Episodes – Totals</span>
+          <span>${rows.length} archives</span>
+        </div>
+        <table class="archive-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Episode</th>
+              <th>Total Stills</th>
+              <th>Total Clips</th>
+              <th>Total TC</th>
+              <th>Total Seconds</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${body}
+          </tbody>
+        </table>
+      </div>
+    `;
+}
+
+/*************************************************
  * SUMMARY PAGE
  *************************************************/
 function initSummaryPage() {
@@ -729,6 +849,7 @@ async function loadSummaryData() {
 
         renderSummaryForEpisode(currentSummaryEpisode);
         renderRawSummary();
+        renderEpisodeTotalsOverview(); // ✅ NEW: show totals for every episode
 
     } catch (err) {
         console.error(err);
@@ -739,30 +860,13 @@ async function loadSummaryData() {
     }
 }
 
-function safeNumber(val) {
-    if (val === null || val === undefined) return 0;
-    const n = parseFloat(val.toString().replace(",", "."));
-    return isNaN(n) ? 0 : n;
-}
-
-function isTotalLabel(text) {
-    return String(text ?? "").trim().toLowerCase() === "total";
-}
-
 function renderSummaryForEpisode(epKey) {
     const cfg = SUMMARY_EPISODES[epKey];
     const statsContainer = document.getElementById("statistics-table");
     if (!cfg || !statsContainer) return;
 
     // ✅ FIX: ignore empty rows AND ignore the sheet's own "Total" row
-    const rows = summaryRows.filter(r => {
-        const name = r[SUMMARY_ARCHIVE_COL];
-        if (name === null || name === undefined) return false;
-        const trimmed = name.toString().trim();
-        if (!trimmed) return false;
-        if (isTotalLabel(trimmed)) return false;
-        return true;
-    });
+    const rows = getUsableSummaryRows();
 
     if (!rows.length) {
         statsContainer.innerHTML =
@@ -830,6 +934,7 @@ function renderSummaryForEpisode(epKey) {
     `;
 
     renderPricingTable(totalStills);
+    renderEpisodeTotalsOverview(); // ✅ keep overview in sync if user changes episode
 }
 
 function renderPricingTable(totalStills) {
@@ -905,6 +1010,7 @@ function renderRawSummary() {
         return;
     }
 
+    // ✅ Also skip the sheet "Total" row here (so it doesn't repeat)
     const usable = summaryRows.filter(r => !isTotalLabel(r[SUMMARY_ARCHIVE_COL]));
 
     let html = "";

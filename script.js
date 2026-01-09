@@ -67,12 +67,24 @@ const SUMMARY_WEBAPP_URL =
 
 const SUMMARY_ARCHIVE_COL = "Archive / Librarie";
 
+/**
+ * ✅ UPDATED to match your NEW sheet column headers
+ * New stills/clips columns:
+ * 01_#stills, 01_#clips
+ * 02_#stills, 02_#clips
+ * 03_#stills, 03_#clips
+ * 04_#stills, 04_#clips
+ * 05_#stills, 05_#clips
+ *
+ * Timecode columns remain:
+ * 01_Duckwitz_TC, 02_Alice_TC, 03_LAW1_TC, 04_LAW2_TC, 05_FRY/BING EDL_TC
+ */
 const SUMMARY_EPISODES = {
-    duckwitz: { key: "duckwitz", label: "Duckwitz", stillsCol: "01_Duckwitz_St", clipsCol: "01_D_clips", tcCol: "01_Duckwitz_TC" },
-    alice: { key: "alice", label: "Alice", stillsCol: "02_Alice_St", clipsCol: "02_Alice_clips", tcCol: "02_Alice_TC" },
-    law1: { key: "law1", label: "LAW 1", stillsCol: "03_LAW1_St", clipsCol: "03_LAW1_clips", tcCol: "03_LAW1_TC" },
-    law2: { key: "law2", label: "LAW 2", stillsCol: "04_LAW2_St", clipsCol: "04_LAW2_clips", tcCol: "04_LAW2_TC" },
-    frybing: { key: "frybing", label: "Fry/Bing", stillsCol: "05_FRY/BING EDL_St", clipsCol: "05_FRY/BING EDL_clips", tcCol: "05_FRY/BING EDL_TC" }
+    duckwitz: { key: "duckwitz", label: "Duckwitz", stillsCol: "01_#stills", clipsCol: "01_#clips", tcCol: "01_Duckwitz_TC" },
+    alice:    { key: "alice",    label: "Alice",    stillsCol: "02_#stills", clipsCol: "02_#clips", tcCol: "02_Alice_TC" },
+    law1:     { key: "law1",     label: "LAW 1",    stillsCol: "03_#stills", clipsCol: "03_#clips", tcCol: "03_LAW1_TC" },
+    law2:     { key: "law2",     label: "LAW 2",    stillsCol: "04_#stills", clipsCol: "04_#clips", tcCol: "04_LAW2_TC" },
+    frybing:  { key: "frybing",  label: "Fry/Bing", stillsCol: "05_#stills", clipsCol: "05_#clips", tcCol: "05_FRY/BING EDL_TC" }
 };
 
 let summaryRows = [];
@@ -748,7 +760,7 @@ function renderSummaryForEpisode(epKey) {
         if (name === null || name === undefined) return false;
         const trimmed = name.toString().trim();
         if (!trimmed) return false;
-        if (isTotalLabel(trimmed)) return false; // <-- IMPORTANT FIX
+        if (isTotalLabel(trimmed)) return false;
         return true;
     });
 
@@ -893,7 +905,6 @@ function renderRawSummary() {
         return;
     }
 
-    // ✅ Also skip the sheet "Total" row here (so it doesn't repeat)
     const usable = summaryRows.filter(r => !isTotalLabel(r[SUMMARY_ARCHIVE_COL]));
 
     let html = "";
